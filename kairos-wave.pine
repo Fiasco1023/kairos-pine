@@ -21,7 +21,7 @@ bool useCci  = input.bool(true, "CCI", group = "Legs in the blend", inline = "a"
 bool useSto  = input.bool(true, "Stoch", group = "Legs in the blend", inline = "a")
 bool useWt   = input.bool(true, "WaveTrend", group = "Legs in the blend", inline = "b")
 bool useMfi  = input.bool(true, "MFI", group = "Legs in the blend", inline = "b")
-bool useVwap = input.bool(true, "VWAP dist", group = "Legs in the blend", inline = "b")
+bool useVwap = input.bool(false, "VWAP dist", group = "Legs in the blend", inline = "b")
 
 int rsiLen = input.int(14, "RSI length", minval = 1, group = "Lengths")
 srcRsi = input.source(close, "RSI source", group = "Lengths")
@@ -46,20 +46,16 @@ bool plotBear = input.bool(true, "Regular bear", group = "Divergences")
 bool plotHidBull = input.bool(false, "Hidden bull", group = "Divergences")
 bool plotHidBear = input.bool(false, "Hidden bear", group = "Divergences")
 
-string htf = input.timeframe("60", "HTF", group = "HTF")
+string htf = input.timeframe("", "HTF (blank = chart)", group = "HTF")
 bool requireHtf = input.bool(false, "Prime requires HTF agreement", group = "HTF")
 
 f_clamp(float x) =>
-    math.max(-200.0, math.min(200.0, x))
+    na(x) ? na : math.max(-200.0, math.min(200.0, x))
 
-// Each leg onto the same +/-200 rail so no single series dominates.
 float rsi = ta.rsi(srcRsi, rsiLen)
 float rsiN = f_clamp(rsi * 4.0 - 200.0)
-
 float cciN = f_clamp(ta.cci(srcCci, cciLen))
-
 float kRaw = ta.sma(ta.stoch(close, high, low, stochLen), smoothK)
-float dRaw = ta.sma(kRaw, smoothD)
 float stoN = f_clamp(kRaw * 4.0 - 200.0)
 
 float esa = ta.ema(hlc3, n1)
@@ -75,14 +71,21 @@ float vwapVal = ta.vwap(hlc3)
 float atr = ta.atr(14)
 float vwapN = f_clamp(atr == 0 ? 0.0 : ((close - vwapVal) / atr) * 20.0)
 
-float acc = (useRsi ? rsiN : 0.0) + (useCci ? cciN : 0.0) + (useSto ? stoN : 0.0) + (useWt ? wtN : 0.0) + (useMfi ? mfiN : 0.0) + (useVwap ? vwapN : 0.0)
-int nLegs = (useRsi ? 1 : 0) + (useCci ? 1 : 0) + (useSto ? 1 : 0) + (useWt ? 1 : 0) + (useMfi ? 1 : 0) + (useVwap ? 1 : 0)
+// Drop a leg if it is na (MFI/VWAP with no volume used to zero the whole line).
+bool rsiOn = useRsi and not na(rsiN)
+bool cciOn = useCci and not na(cciN)
+bool stoOn = useSto and not na(stoN)
+bool wtOn  = useWt and not na(wtN)
+bool mfiOn = useMfi and not na(mfiN)
+bool vwapOn = useVwap and not na(vwapN)
+int nLegs = (rsiOn ? 1 : 0) + (cciOn ? 1 : 0) + (stoOn ? 1 : 0) + (wtOn ? 1 : 0) + (mfiOn ? 1 : 0) + (vwapOn ? 1 : 0)
+float acc = (rsiOn ? rsiN : 0.0) + (cciOn ? cciN : 0.0) + (stoOn ? stoN : 0.0) + (wtOn ? wtN : 0.0) + (mfiOn ? mfiN : 0.0) + (vwapOn ? vwapN : 0.0)
 float composite = nLegs == 0 ? 0.0 : acc / nLegs
 float compositeMA = maType == "SMA" ? ta.sma(composite, maLen) : ta.ema(composite, maLen)
 
-int nOs = (useRsi and rsiN <= -zone ? 1 : 0) + (useCci and cciN <= -zone ? 1 : 0) + (useSto and stoN <= -zone ? 1 : 0) + (useWt and wtN <= -zone ? 1 : 0) + (useMfi and mfiN <= -zone ? 1 : 0) + (useVwap and vwapN <= -zone ? 1 : 0)
-int nOb = (useRsi and rsiN >= zone ? 1 : 0) + (useCci and cciN >= zone ? 1 : 0) + (useSto and stoN >= zone ? 1 : 0) + (useWt and wtN >= zone ? 1 : 0) + (useMfi and mfiN >= zone ? 1 : 0) + (useVwap and vwapN >= zone ? 1 : 0)
-int needAgree = math.max(2, nLegs - 2)
+int nOs = (rsiOn and rsiN <= -zone ? 1 : 0) + (cciOn and cciN <= -zone ? 1 : 0) + (stoOn and stoN <= -zone ? 1 : 0) + (wtOn and wtN <= -zone ? 1 : 0) + (mfiOn and mfiN <= -zone ? 1 : 0) + (vwapOn and vwapN <= -zone ? 1 : 0)
+int nOb = (rsiOn and rsiN >= zone ? 1 : 0) + (cciOn and cciN >= zone ? 1 : 0) + (stoOn and stoN >= zone ? 1 : 0) + (wtOn and wtN >= zone ? 1 : 0) + (mfiOn and mfiN >= zone ? 1 : 0) + (vwapOn and vwapN >= zone ? 1 : 0)
+int needAgree = nLegs > 4 ? nLegs - 2 : 2
 
 float htfClose = request.security(syminfo.tickerid, htf, close[1], barmerge.gaps_off, barmerge.lookahead_on)
 float htfEma = request.security(syminfo.tickerid, htf, ta.ema(close, 50)[1], barmerge.gaps_off, barmerge.lookahead_on)
@@ -132,8 +135,8 @@ plot(showRaw and useMfi  ? mfiN  : na, "MFI", color = color.new(#8b6bb5, 78))
 plot(showRaw and useVwap ? vwapN : na, "VWAP", color = color.new(#e0a15a, 78))
 
 color compCol = composite > compositeMA ? cTeal : cRose
-plot(showComp ? composite : na, "Composite", color = compCol, linewidth = 3)
-plot(showMA ? compositeMA : na, "Composite MA", color = cCopper, linewidth = 2)
+plot(showComp ? composite : na, "Composite", color = compCol, linewidth = 3, display = display.all)
+plot(showMA ? compositeMA : na, "Composite MA", color = cCopper, linewidth = 2, display = display.all)
 
 color noneCol = color.new(color.white, 100)
 plot(showDiv and plFound ? composite[lbR] : na, offset = -lbR, title = "Bull pivot", color = bullCond ? cTeal : hidBull ? color.new(cTeal, 65) : noneCol, linewidth = 2)

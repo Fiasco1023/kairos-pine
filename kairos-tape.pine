@@ -146,7 +146,7 @@ float relVol = ta.sma(volume, volLen) == 0 ? 1.0 : volume / ta.sma(volume, volLe
 bool volOk = relVol >= volMult
 float vwapVal = ta.vwap(hlc3)
 
-string htf = input.timeframe("60", "HTF", group = "7. HTF")
+string htf = input.timeframe("", "HTF (blank = chart)", group = "7. HTF")
 bool requireHtf = input.bool(true, "Require HTF agreement", group = "7. HTF")
 float htfClose = request.security(syminfo.tickerid, htf, close[1], barmerge.gaps_off, barmerge.lookahead_on)
 float htfEma50 = request.security(syminfo.tickerid, htf, ta.ema(close, 50)[1], barmerge.gaps_off, barmerge.lookahead_on)
