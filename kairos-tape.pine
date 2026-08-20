@@ -176,21 +176,16 @@ float waveMA = ta.ema(waveBlend, 14)
 bool waveUp = waveBlend > waveMA
 
 int longThresh  = input.int(6, "Impulse long score >=", minval = 1, maxval = 10, group = "8. Signals")
-int shortThresh = input.int(-6, "Impulse short score <=", maxval = -1, minval = -10, group = "8. Signals")
 bool showImpulseLong = input.bool(true, "Impulse long (IN)", group = "8. Signals")
-bool showImpulseShort = input.bool(false, "Impulse short (IN)", group = "8. Signals")
 bool showExhaustion = input.bool(false, "Exhaustion diamonds", group = "8. Signals")
 bool showStEnv = input.bool(false, "ST env X", group = "8. Signals")
 
 bool gated = not confirmOnClose or barstate.isconfirmed
 bool trigLong  = ta.crossover(cci, 0) or ta.crossover(hullFast, hullSlow) or stFlipUp or ta.crossover(macdPct, 0)
-bool trigShort = ta.crossunder(cci, 0) or ta.crossunder(hullFast, hullSlow) or stFlipDn or ta.crossunder(macdPct, 0)
 bool chopBlock = blockChop and regime == "CHOP"
 bool volGate = not requireVol or volOk
 bool htfGateL = not requireHtf or htfVote >= 0
-bool htfGateS = not requireHtf or htfVote <= 0
-bool impulseLong  = gated and not chopBlock and volGate and htfGateL and score >= longThresh and trigLong and close > open
-bool impulseShort = gated and not chopBlock and volGate and htfGateS and score <= shortThresh and trigShort and close < open
+bool impulseLongRaw = gated and not chopBlock and volGate and htfGateL and score >= longThresh and trigLong and close > open
 bool fadeLong  = gated and cci > cciExt and ta.crossunder(cci, cciExt) and vSlow == 1
 bool fadeShort = gated and cci < -cciExt and ta.crossover(cci, -cciExt) and vSlow == -1
 bool stEnvUp = gated and ta.crossunder(st3, st1) and stMajorityUp and close > open
@@ -209,7 +204,7 @@ bool hmaaboveema2 = hull80 > MA3
 bool ccibuy = cci > 0
 bool temabuy = tema1 > tema2
 bool temabuy2 = tema3 > tema4
-bool SUPERLONG = emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2 and ta.crossover(macd, 0) and ccibuy and temabuy and temabuy2
+bool SUPERLONG_RAW = emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2 and ta.crossover(macd, 0) and ccibuy and temabuy and temabuy2
 
 // STLong — the other lime/purple "L" you saw on HYPE daily (original size.small purple).
 // Original: STBUY and CCI cross 0 and TFccibuy and hmabuy and HMA>ST1/2/3 and BullCandle
@@ -218,24 +213,64 @@ bool SUPERLONG = emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2 and t
 bool showSTLong = input.bool(true, "Show STLong", group = "9. W2T recipes")
 bool hmabuy = hullFast > hullSlow
 bool hmasupertrendbuy = hullFast > st3 and hullFast > st1 and hullFast > st2
-bool STLong = stMajorityUp and ta.crossover(cci, 0) and hmabuy and hmasupertrendbuy and close > open
+bool STLong_RAW = stMajorityUp and ta.crossover(cci, 0) and hmabuy and hmasupertrendbuy and close > open
 
 // SHORT100 — original short counterpart
-bool showShort100 = input.bool(true, "Show SHORT100", group = "9. W2T recipes")
+bool showShort100 = input.bool(false, "Show SHORT100", group = "9. W2T recipes")
 bool hmasupertrendsell = hullFast < st3 and hullFast < st1 and hullFast < st2
 bool hmabeloweema = hullSlow < MA6
 bool SHORT100 = ta.crossunder(macd, 0) and hmasupertrendsell and hmabeloweema and close < open
 
-// Matrix winner (15,640 combo x market rows): CCI cross 0 while the tape is still bullish.
-// Best cluster: CCI cross up + fast cloud up + close > EMA170 (+ mid cloud).
-// Hold until slow cloud or Wave flips. Do not reverse into shorts.
+// Invalidation: regular bearish divergence on the same Wave blend (RSI+CCI+Stoch+MFI).
+// Example: BTC daily prints STLong / SUPERLONG while Wave already has a BEAR div — skip the long.
+// Stays active until a bull div prints or price breaks the pivot high (failed divergence).
+bool killOnBearDiv = input.bool(true, "Kill longs on Wave bear div", group = "11. Invalidation")
+int invLeft = input.int(5, "Div pivot left", minval = 1, group = "11. Invalidation")
+int invRight = input.int(5, "Div pivot right", minval = 1, group = "11. Invalidation")
+int invMax = input.int(60, "Div max lookback", minval = 5, group = "11. Invalidation")
+int invMin = input.int(5, "Div min lookback", minval = 1, group = "11. Invalidation")
+bool showInv = input.bool(true, "Mark invalidated longs (INV)", group = "11. Invalidation")
+
+_inRangeInv(bool cond) =>
+    int bars = ta.barssince(cond)
+    not na(bars) and bars >= invMin and bars <= invMax
+
+bool plW = not na(ta.pivotlow(waveBlend, invLeft, invRight))
+bool phW = not na(ta.pivothigh(waveBlend, invLeft, invRight))
+bool wLH = waveBlend[invRight] < ta.valuewhen(phW, waveBlend[invRight], 1) and _inRangeInv(phW[1])
+bool wHL = waveBlend[invRight] > ta.valuewhen(plW, waveBlend[invRight], 1) and _inRangeInv(plW[1])
+bool pxHH = high[invRight] > ta.valuewhen(phW, high[invRight], 1)
+bool pxLL = low[invRight] < ta.valuewhen(plW, low[invRight], 1)
+bool bearDiv = pxHH and wLH and phW
+bool bullDiv = pxLL and wHL and plW
+
+var bool bearDivActive = false
+var float bearDivCap = na
+if bearDiv
+    bearDivActive := true
+    bearDivCap := high[invRight]
+if bullDiv
+    bearDivActive := false
+    bearDivCap := na
+if bearDivActive and not na(bearDivCap) and high > bearDivCap
+    bearDivActive := false
+    bearDivCap := na
+
+bool invKill = killOnBearDiv and bearDivActive
+bool impulseLong = impulseLongRaw and not invKill
+bool SUPERLONG = SUPERLONG_RAW and not invKill
+bool STLong = STLong_RAW and not invKill
+
+// Matrix winner: CCI cross 0 while the tape is still bullish.
 bool showKairos = input.bool(true, "Kairos long (K)", group = "10. Combined")
 bool kRequireFast = input.bool(true, "Require fast cloud up", group = "10. Combined")
 bool kRequireMid = input.bool(true, "Require mid cloud up", group = "10. Combined")
 bool kRequirePx = input.bool(true, "Require close > slow EMA", group = "10. Combined")
 bool kRequireWave = input.bool(false, "Require Wave blend teal", group = "10. Combined")
 bool kRequireST = input.bool(false, "Require SuperTrend majority up", group = "10. Combined")
-bool kairosLong = ta.crossover(cci, 0) and close > open and (not kRequireFast or vFast == 1) and (not kRequireMid or vMid == 1) and (not kRequirePx or close > MA6) and (not kRequireWave or waveUp) and (not kRequireST or stMajorityUp)
+bool kairosRaw = ta.crossover(cci, 0) and close > open and (not kRequireFast or vFast == 1) and (not kRequireMid or vMid == 1) and (not kRequirePx or close > MA6) and (not kRequireWave or waveUp) and (not kRequireST or stMajorityUp)
+bool kairosLong = kairosRaw and not invKill
+bool kairosInv = showInv and (impulseLongRaw or SUPERLONG_RAW or STLong_RAW or kairosRaw) and invKill
 
 plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
 
@@ -258,7 +293,6 @@ fill(bodyMid, dn3, showST ? color.new(cRose, 88) : na, title = "ST dn")
 barcolor(cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
 
 plotshape(showImpulseLong and impulseLong,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = cTeal,   size = size.small, text = "IN", textcolor = color.white)
-plotshape(showImpulseShort and impulseShort, title = "Impulse Short", style = shape.triangledown, location = location.abovebar, color = cRose,   size = size.small, text = "IN", textcolor = color.white)
 plotshape(showExhaustion and fadeLong,     title = "Exhaustion L",  style = shape.diamond,      location = location.abovebar, color = cCopper, size = size.tiny,  text = "EX")
 plotshape(showExhaustion and fadeShort,    title = "Exhaustion S",  style = shape.diamond,      location = location.belowbar, color = cCopper, size = size.tiny,  text = "EX")
 plotshape(showStEnv and stEnvUp,      title = "ST env up",     style = shape.xcross,       location = location.belowbar, color = cSlate,  size = size.tiny)
@@ -267,12 +301,13 @@ plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triang
 plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
 plotshape(showShort100 and SHORT100, title = "SHORT100", style = shape.triangledown, location = location.abovebar, color = #ffbcc7, size = size.tiny, text = "S")
 plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = cCopper, size = size.normal, text = "K", textcolor = color.white)
+plotshape(kairosInv, title = "Invalidated long", style = shape.xcross, location = location.abovebar, color = cRose, size = size.small, text = "INV")
 
 var table dash = table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
 
 if showDash and barstate.islast
     color regimeCol = regime == "TREND" ? cTeal : regime == "CHOP" ? cRose : cCopper
-    color scoreCol = score >= longThresh ? cTeal : score <= shortThresh ? cRose : cInk
+    color scoreCol = score >= longThresh ? cTeal : score <= -6 ? cRose : cInk
     color htfCol = htfBull ? cTeal : htfBear ? cRose : cInk
     table.cell(dash, 0, 0, "KAIROS TAPE", text_color = cCopper, text_size = size.small)
     table.cell(dash, 1, 0, profile, text_color = cCopper, text_size = size.small)
@@ -292,7 +327,6 @@ if showDash and barstate.islast
     table.cell(dash, 1, 7, wt1 > wt2 ? "WT+" : "WT-", text_color = wt1 > wt2 ? cTeal : cRose, text_size = size.small)
 
 alertcondition(impulseLong,  "Kairos Tape Impulse Long",  "Impulse long")
-alertcondition(impulseShort, "Kairos Tape Impulse Short", "Impulse short")
 alertcondition(fadeLong,     "Kairos Tape Exhaustion Long",  "CCI rolling over")
 alertcondition(fadeShort,    "Kairos Tape Exhaustion Short", "CCI rolling up")
 alertcondition(stEnvUp,      "Kairos Tape ST env up",   "SuperTrend constructive")
@@ -302,11 +336,11 @@ alertcondition(SUPERLONG,    "Kairos Tape SUPERLONG", "W2T SuperLong: MACD cross
 alertcondition(STLong,       "Kairos Tape STLong",    "W2T STLong: CCI cross 0 + HMA above SuperTrend stack")
 alertcondition(SHORT100,     "Kairos Tape SHORT100",  "W2T Short100")
 alertcondition(kairosLong,   "Kairos combined long",  "CCI cross 0 + bullish fast/mid cloud + price > slow EMA")
+alertcondition(kairosInv,    "Kairos long invalidated", "Tape long killed by Wave bearish divergence")
+alertcondition(bearDiv,      "Kairos Wave bear div (on Tape)", "Regular bearish divergence on the composite")
 
 if impulseLong
     alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
-if impulseShort
-    alert("KAIROS TAPE impulse SHORT | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
 if SUPERLONG
     alert("KAIROS TAPE SUPERLONG | MACD cross 0 | TEMA50>100 | HMA above slow tape", alert.freq_once_per_bar_close)
 if STLong
@@ -315,3 +349,5 @@ if SHORT100
     alert("KAIROS TAPE SHORT100 | MACD cross down | HMA below ST stack", alert.freq_once_per_bar_close)
 if kairosLong
     alert("KAIROS LONG | CCI cross 0 | fast/mid cloud UP | px > slow EMA | score " + str.tostring(score), alert.freq_once_per_bar_close)
+if kairosInv
+    alert("KAIROS INVALIDATED | Wave bear div active — skipped long", alert.freq_once_per_bar_close)
