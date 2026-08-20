@@ -1,6 +1,6 @@
-// Kairos Wave v6 — pane oscillator. Pair with Kairos Tape. Do not merge.
-// Primary: your composite (RSI + CCI + Stoch) / 3. Divergences on THAT line only.
-// WaveTrend and MFI stay optional confirmation — off by default so the pane stays readable.
+// Kairos Wave v6 — ONE composite line. Pair with Kairos Tape. Do not merge.
+// Legs (RSI, CCI, Stoch, WaveTrend, MFI, VWAP) are scaled to +/-200 and averaged.
+// They are ingredients, not extra plots. Divergences and dots fire on the blend.
 //@version=6
 indicator("Kairos Wave", shorttitle = "KRS Wave", overlay = false, format = format.price, max_labels_count = 100, max_lines_count = 50)
 
@@ -13,25 +13,29 @@ bool showComp = input.bool(true, "Composite", group = "Show")
 bool showMA   = input.bool(true, "Composite MA", group = "Show")
 bool showDots = input.bool(true, "Signal dots", group = "Show")
 bool showDiv  = input.bool(true, "Divergences", group = "Show")
-bool showWt   = input.bool(false, "WaveTrend (optional)", group = "Show")
-bool showMf   = input.bool(false, "Money flow area (optional)", group = "Show")
-bool showRaw  = input.bool(false, "Raw RSI / CCI / Stoch", group = "Show")
+bool showRaw  = input.bool(false, "Ghost legs (debug)", group = "Show")
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Show")
 
-int rsiLen = input.int(14, "RSI length", minval = 1, group = "Composite")
-srcRsi = input.source(close, "RSI source", group = "Composite")
-int cciLen = input.int(50, "CCI length", minval = 1, group = "Composite")
-srcCci = input.source(hlc3, "CCI source", group = "Composite")
-int stochLen = input.int(14, "Stoch length", minval = 1, group = "Composite")
-int smoothK = input.int(3, "K smoothing", minval = 1, group = "Composite")
-int smoothD = input.int(3, "D smoothing", minval = 1, group = "Composite")
-string maType = input.string("EMA", "MA type", options = ["EMA", "SMA"], group = "Composite")
-int maLen = input.int(14, "MA length", minval = 1, group = "Composite")
-float zone = input.float(100.0, "Signal zone (+/-)", minval = 20, group = "Composite")
+bool useRsi  = input.bool(true, "RSI", group = "Legs in the blend", inline = "a")
+bool useCci  = input.bool(true, "CCI", group = "Legs in the blend", inline = "a")
+bool useSto  = input.bool(true, "Stoch", group = "Legs in the blend", inline = "a")
+bool useWt   = input.bool(true, "WaveTrend", group = "Legs in the blend", inline = "b")
+bool useMfi  = input.bool(true, "MFI", group = "Legs in the blend", inline = "b")
+bool useVwap = input.bool(true, "VWAP dist", group = "Legs in the blend", inline = "b")
 
-int n1 = input.int(10, "WT n1", minval = 1, group = "Optional WT / MFI")
-int n2 = input.int(21, "WT n2", minval = 1, group = "Optional WT / MFI")
-int mfLen = input.int(60, "MFI length", minval = 1, group = "Optional WT / MFI")
+int rsiLen = input.int(14, "RSI length", minval = 1, group = "Lengths")
+srcRsi = input.source(close, "RSI source", group = "Lengths")
+int cciLen = input.int(50, "CCI length", minval = 1, group = "Lengths")
+srcCci = input.source(hlc3, "CCI source", group = "Lengths")
+int stochLen = input.int(14, "Stoch length", minval = 1, group = "Lengths")
+int smoothK = input.int(3, "K", minval = 1, group = "Lengths", inline = "k")
+int smoothD = input.int(3, "D", minval = 1, group = "Lengths", inline = "k")
+int n1 = input.int(10, "WT n1", minval = 1, group = "Lengths", inline = "w")
+int n2 = input.int(21, "WT n2", minval = 1, group = "Lengths", inline = "w")
+int mfLen = input.int(60, "MFI length", minval = 1, group = "Lengths")
+string maType = input.string("EMA", "MA type", options = ["EMA", "SMA"], group = "Lengths")
+int maLen = input.int(14, "MA length", minval = 1, group = "Lengths")
+float zone = input.float(100.0, "Signal zone (+/-)", minval = 20, group = "Lengths")
 
 int lbL = input.int(5, "Pivot left", minval = 1, group = "Divergences")
 int lbR = input.int(5, "Pivot right", minval = 1, group = "Divergences")
@@ -45,27 +49,40 @@ bool plotHidBear = input.bool(false, "Hidden bear", group = "Divergences")
 string htf = input.timeframe("60", "HTF", group = "HTF")
 bool requireHtf = input.bool(false, "Prime requires HTF agreement", group = "HTF")
 
-// Your composite: each leg mapped onto +/-200, then averaged.
-// RSI 0..100  ->  rsi*4-200
-// Stoch 0..100 -> k*4-200
-// CCI is already roughly +/-200
+f_clamp(float x) =>
+    math.max(-200.0, math.min(200.0, x))
+
+// Each leg onto the same +/-200 rail so no single series dominates.
 float rsi = ta.rsi(srcRsi, rsiLen)
-float osc = rsi * 4.0 - 200.0
-float cci = ta.cci(srcCci, cciLen)
+float rsiN = f_clamp(rsi * 4.0 - 200.0)
+
+float cciN = f_clamp(ta.cci(srcCci, cciLen))
+
 float kRaw = ta.sma(ta.stoch(close, high, low, stochLen), smoothK)
 float dRaw = ta.sma(kRaw, smoothD)
-float k = kRaw * 4.0 - 200.0
-float d = dRaw * 4.0 - 200.0
-float composite = (osc + cci + k) / 3.0
-float compositeMA = maType == "SMA" ? ta.sma(composite, maLen) : ta.ema(composite, maLen)
+float stoN = f_clamp(kRaw * 4.0 - 200.0)
 
 float esa = ta.ema(hlc3, n1)
 float de = ta.ema(math.abs(hlc3 - esa), n1)
 float ci = de == 0 ? 0.0 : (hlc3 - esa) / (0.015 * de)
 float wt1 = ta.ema(ci, n2)
-float wt2 = ta.sma(wt1, 4)
+float wtN = f_clamp(wt1 * 2.0)
+
 float mfi = ta.mfi(hlc3, mfLen)
-bool mfGreen = mfi >= 50
+float mfiN = f_clamp((mfi - 50.0) * 4.0)
+
+float vwapVal = ta.vwap(hlc3)
+float atr = ta.atr(14)
+float vwapN = f_clamp(atr == 0 ? 0.0 : ((close - vwapVal) / atr) * 20.0)
+
+float acc = (useRsi ? rsiN : 0.0) + (useCci ? cciN : 0.0) + (useSto ? stoN : 0.0) + (useWt ? wtN : 0.0) + (useMfi ? mfiN : 0.0) + (useVwap ? vwapN : 0.0)
+int nLegs = (useRsi ? 1 : 0) + (useCci ? 1 : 0) + (useSto ? 1 : 0) + (useWt ? 1 : 0) + (useMfi ? 1 : 0) + (useVwap ? 1 : 0)
+float composite = nLegs == 0 ? 0.0 : acc / nLegs
+float compositeMA = maType == "SMA" ? ta.sma(composite, maLen) : ta.ema(composite, maLen)
+
+int nOs = (useRsi and rsiN <= -zone ? 1 : 0) + (useCci and cciN <= -zone ? 1 : 0) + (useSto and stoN <= -zone ? 1 : 0) + (useWt and wtN <= -zone ? 1 : 0) + (useMfi and mfiN <= -zone ? 1 : 0) + (useVwap and vwapN <= -zone ? 1 : 0)
+int nOb = (useRsi and rsiN >= zone ? 1 : 0) + (useCci and cciN >= zone ? 1 : 0) + (useSto and stoN >= zone ? 1 : 0) + (useWt and wtN >= zone ? 1 : 0) + (useMfi and mfiN >= zone ? 1 : 0) + (useVwap and vwapN >= zone ? 1 : 0)
+int needAgree = math.max(2, nLegs - 2)
 
 float htfClose = request.security(syminfo.tickerid, htf, close[1], barmerge.gaps_off, barmerge.lookahead_on)
 float htfEma = request.security(syminfo.tickerid, htf, ta.ema(close, 50)[1], barmerge.gaps_off, barmerge.lookahead_on)
@@ -78,13 +95,10 @@ bool crossDn = ta.crossunder(composite, compositeMA)
 bool inOs = composite <= -zone
 bool inOb = composite >= zone
 
-// LONG: composite crosses back up through its MA while still in the oversold zone.
-// SHORT: mirror. That is the only default signal — no 12-way AND.
 bool sigLong  = gated and crossUp and inOs
 bool sigShort = gated and crossDn and inOb
-// PRIME: same cross, plus money-flow agreement, plus HTF not opposed (if required).
-bool primeLong  = sigLong  and mfGreen and (not requireHtf or not htfBear)
-bool primeShort = sigShort and not mfGreen and (not requireHtf or not htfBull)
+bool primeLong  = sigLong  and nOs >= needAgree and (not requireHtf or not htfBear)
+bool primeShort = sigShort and nOb >= needAgree and (not requireHtf or not htfBull)
 
 _inRange(bool cond) =>
     int bars = ta.barssince(cond)
@@ -92,7 +106,6 @@ _inRange(bool cond) =>
 
 bool plFound = not na(ta.pivotlow(composite, lbL, lbR))
 bool phFound = not na(ta.pivothigh(composite, lbL, lbR))
-
 bool compHL = composite[lbR] > ta.valuewhen(plFound, composite[lbR], 1) and _inRange(plFound[1])
 bool compLL = composite[lbR] < ta.valuewhen(plFound, composite[lbR], 1) and _inRange(plFound[1])
 bool compLH = composite[lbR] < ta.valuewhen(phFound, composite[lbR], 1) and _inRange(phFound[1])
@@ -101,7 +114,6 @@ bool priceLL = low[lbR]  < ta.valuewhen(plFound, low[lbR], 1)
 bool priceHL = low[lbR]  > ta.valuewhen(plFound, low[lbR], 1)
 bool priceHH = high[lbR] > ta.valuewhen(phFound, high[lbR], 1)
 bool priceLH = high[lbR] < ta.valuewhen(phFound, high[lbR], 1)
-
 bool bullCond = plotBull and showDiv and priceLL and compHL and plFound
 bool hidBull  = plotHidBull and showDiv and priceHL and compLL and plFound
 bool bearCond = plotBear and showDiv and priceHH and compLH and phFound
@@ -112,13 +124,12 @@ hUp = hline(zone, "OB", color = color.new(cRose, 40), linestyle = hline.style_da
 hDn = hline(-zone, "OS", color = color.new(cTeal, 40), linestyle = hline.style_dashed)
 fill(hUp, hDn, color = color.new(#3aa88a, 94), title = "Neutral zone")
 
-plot(showMf ? (mfi - 50.0) * 2.4 : na, "MFI", color = mfGreen ? color.new(cTeal, 78) : color.new(cRose, 78), style = plot.style_area)
-plot(showWt ? wt1 : na, "WT1", color = color.new(cCopper, 30), linewidth = 1)
-plot(showWt ? wt2 : na, "WT2", color = color.new(#8b6bb5, 40), linewidth = 1)
-plot(showRaw ? osc : na, "RSI scaled", color = color.new(#00d8e0, 70))
-plot(showRaw ? cci : na, "CCI", color = color.new(#ff4fd0, 70))
-plot(showRaw ? k : na, "Stoch K", color = color.new(#4c7ad9, 70))
-plot(showRaw ? d : na, "Stoch D", color = color.new(#FF6D00, 80))
+plot(showRaw and useRsi  ? rsiN  : na, "RSI", color = color.new(#00d8e0, 78))
+plot(showRaw and useCci  ? cciN  : na, "CCI", color = color.new(#ff4fd0, 78))
+plot(showRaw and useSto  ? stoN  : na, "Stoch", color = color.new(#4c7ad9, 78))
+plot(showRaw and useWt   ? wtN   : na, "WT", color = color.new(cCopper, 78))
+plot(showRaw and useMfi  ? mfiN  : na, "MFI", color = color.new(#8b6bb5, 78))
+plot(showRaw and useVwap ? vwapN : na, "VWAP", color = color.new(#e0a15a, 78))
 
 color compCol = composite > compositeMA ? cTeal : cRose
 plot(showComp ? composite : na, "Composite", color = compCol, linewidth = 3)
@@ -142,16 +153,14 @@ if bearCond
 if hidBear
     label.new(bar_index[lbR], composite[lbR], "H Bear", style = label.style_label_down, color = color.new(cRose, 40), textcolor = color.white, size = size.small)
 
-alertcondition(primeLong, "Wave Prime Long", "Composite cross up in OS zone + MFI in")
-alertcondition(primeShort, "Wave Prime Short", "Composite cross down in OB zone + MFI out")
+alertcondition(primeLong, "Wave Prime Long", "Blend cross up in OS + most legs oversold")
+alertcondition(primeShort, "Wave Prime Short", "Blend cross down in OB + most legs overbought")
 alertcondition(sigLong, "Wave Long", "Composite crossed above MA in oversold zone")
 alertcondition(sigShort, "Wave Short", "Composite crossed below MA in overbought zone")
 alertcondition(bullCond, "Wave regular bull div", "Regular bullish divergence on composite")
 alertcondition(bearCond, "Wave regular bear div", "Regular bearish divergence on composite")
-alertcondition(ta.crossover(composite, 0), "Composite cross above 0", "Composite crossed zero")
-alertcondition(ta.crossunder(composite, 0), "Composite cross below 0", "Composite crossed zero")
 
 if primeLong
-    alert("KAIROS WAVE prime LONG | composite " + str.tostring(composite, "#.0"), alert.freq_once_per_bar_close)
+    alert("KAIROS WAVE prime LONG | blend " + str.tostring(composite, "#.0") + " | legs OS " + str.tostring(nOs) + "/" + str.tostring(nLegs), alert.freq_once_per_bar_close)
 if primeShort
-    alert("KAIROS WAVE prime SHORT | composite " + str.tostring(composite, "#.0"), alert.freq_once_per_bar_close)
+    alert("KAIROS WAVE prime SHORT | blend " + str.tostring(composite, "#.0") + " | legs OB " + str.tostring(nOb) + "/" + str.tostring(nLegs), alert.freq_once_per_bar_close)
