@@ -1,5 +1,5 @@
 // Kairos Wave v6 - ONE composite line. Pair with Kairos Tape. Do not merge.
-// Legs (RSI, CCI, Stoch, WaveTrend, MFI, VWAP) are scaled to +/-200 and averaged.
+// Default blend = research winner: CCI + WaveTrend (best multi-leg 5-bar, +OOS). VWAP never on.
 // BEAR label = Tape long invalidation. Not a short entry. No short dots.
 //@version=6
 indicator("Kairos Wave", shorttitle = "KRS Wave", overlay = false, format = format.price, max_labels_count = 100, max_lines_count = 50)
@@ -16,12 +16,23 @@ bool showDiv  = input.bool(true, "Divergences", group = "Show")
 bool showRaw  = input.bool(false, "Ghost legs (debug)", group = "Show")
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Show")
 
-bool useRsi  = input.bool(true, "RSI", group = "Legs in the blend", inline = "a")
-bool useCci  = input.bool(true, "CCI", group = "Legs in the blend", inline = "a")
-bool useSto  = input.bool(true, "Stoch", group = "Legs in the blend", inline = "a")
-bool useWt   = input.bool(false, "WaveTrend", group = "Legs in the blend", inline = "b")
-bool useMfi  = input.bool(true, "MFI", group = "Legs in the blend", inline = "b")
-bool useVwap = input.bool(false, "VWAP dist", group = "Legs in the blend", inline = "b")
+string blendPreset = input.string("Research (CCI+WT)", "Blend preset", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Legs in the blend")
+bool inRsi  = input.bool(false, "RSI", group = "Legs in the blend", inline = "a")
+bool inCci  = input.bool(true,  "CCI", group = "Legs in the blend", inline = "a")
+bool inSto  = input.bool(false, "Stoch", group = "Legs in the blend", inline = "a")
+bool inWt   = input.bool(true,  "WaveTrend", group = "Legs in the blend", inline = "b")
+bool inMfi  = input.bool(false, "MFI", group = "Legs in the blend", inline = "b")
+bool inVwap = input.bool(false, "VWAP dist", group = "Legs in the blend", inline = "b")
+
+bool isHype = blendPreset == "HYPE (RSI+CCI+Stoch+MFI)"
+bool isFull = blendPreset == "Full 5"
+bool isCust = blendPreset == "Custom"
+bool useRsi  = isHype or isFull or (isCust and inRsi)
+bool useCci  = not isCust or inCci
+bool useSto  = isHype or isFull or (isCust and inSto)
+bool useWt   = blendPreset == "Research (CCI+WT)" or isFull or (isCust and inWt)
+bool useMfi  = isHype or isFull or (isCust and inMfi)
+bool useVwap = isCust and inVwap
 
 int rsiLen = input.int(14, "RSI length", minval = 1, group = "Lengths")
 srcRsi = input.source(close, "RSI source", group = "Lengths")
