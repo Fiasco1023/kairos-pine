@@ -225,6 +225,7 @@ int invRight = input.int(5, "Div pivot right", minval = 1, group = "11. Invalida
 int invMax = input.int(60, "Div max lookback", minval = 5, group = "11. Invalidation")
 int invMin = input.int(5, "Div min lookback", minval = 1, group = "11. Invalidation")
 bool showInv = input.bool(true, "Mark Wave BEAR as INV on Tape", group = "11. Invalidation")
+int stampBars = input.int(20, "L-INV lookback (bars)", minval = 1, maxval = 100, group = "11. Invalidation")
 
 _inRangeInv(bool cond) =>
     int bars = ta.barssince(cond)
@@ -298,11 +299,20 @@ plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, loc
 plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = cCopper, size = size.normal, text = "K", textcolor = color.white)
 // INV sits on the SAME candle Wave labels BEAR (pivot, 5 bars back).
 plotshape(showInv and bearDiv, title = "Wave BEAR invalidation", style = shape.xcross, location = location.abovebar, color = cRose, size = size.small, text = "INV", textcolor = color.white, offset = -invRight)
-// X marks a Tape long that was skipped because a Wave BEAR is still live.
-plotshape(skippedLong, title = "Skipped long", style = shape.xcross, location = location.abovebar, color = cRose, size = size.tiny, text = "X")
+// L-INV on a live long that tried to print after the BEAR is already active.
+plotshape(skippedLong, title = "L-INV skipped", style = shape.xcross, location = location.abovebar, color = cRose, size = size.small, text = "L-INV")
 
+// After Wave BEAR confirms, stamp any Tape L / IN / K in the last stampBars as invalidated.
+// Pine cannot un-print the original triangle; this tags it after the fact.
 if showInv and bearDiv
     label.new(bar_index[invRight], high[invRight], "INV", style = label.style_label_down, color = cRose, textcolor = color.white, size = size.small)
+    for i = 0 to stampBars
+        bool wasL  = SUPERLONG_RAW[i] or STLong_RAW[i]
+        bool wasIN = impulseLongRaw[i]
+        bool wasK  = kairosRaw[i]
+        if wasL or wasIN or wasK
+            string tag = wasL ? "L-INV" : wasK ? "K-INV" : "IN-INV"
+            label.new(bar_index[i], low[i], tag, xloc = xloc.bar_index, style = label.style_label_up, color = cRose, textcolor = color.white, size = size.small)
 
 var table dash = table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
 
