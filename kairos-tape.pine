@@ -226,13 +226,16 @@ bool hmasupertrendsell = hullFast < st3 and hullFast < st1 and hullFast < st2
 bool hmabeloweema = hullSlow < MA6
 bool SHORT100 = ta.crossunder(macd, 0) and hmasupertrendsell and hmabeloweema and close < open
 
-// Combined rule from the backtest: take Tape longs only with slow+mid cloud UP and Wave teal.
-// Do NOT take bears while the slow cloud is still up (that fade lost on every HYPE formation).
+// Matrix winner (15,640 combo x market rows): CCI cross 0 while the tape is still bullish.
+// Best cluster: CCI cross up + fast cloud up + close > EMA170 (+ mid cloud).
+// Hold until slow cloud or Wave flips. Do not reverse into shorts.
 bool showKairos = input.bool(true, "Kairos long (K)", group = "10. Combined")
-bool kRequireSlow = input.bool(true, "Require slow cloud up", group = "10. Combined")
-bool kRequireMid = input.bool(true, "Require mid cloud up (skip mid-roll)", group = "10. Combined")
-bool kRequireWave = input.bool(true, "Require Wave blend teal", group = "10. Combined")
-bool kairosLong = (impulseLong or STLong or SUPERLONG) and (not kRequireSlow or vSlow == 1) and (not kRequireMid or vMid == 1) and (not kRequireWave or waveUp)
+bool kRequireFast = input.bool(true, "Require fast cloud up", group = "10. Combined")
+bool kRequireMid = input.bool(true, "Require mid cloud up", group = "10. Combined")
+bool kRequirePx = input.bool(true, "Require close > slow EMA", group = "10. Combined")
+bool kRequireWave = input.bool(false, "Require Wave blend teal", group = "10. Combined")
+bool kRequireST = input.bool(false, "Require SuperTrend majority up", group = "10. Combined")
+bool kairosLong = ta.crossover(cci, 0) and close > open and (not kRequireFast or vFast == 1) and (not kRequireMid or vMid == 1) and (not kRequirePx or close > MA6) and (not kRequireWave or waveUp) and (not kRequireST or stMajorityUp)
 
 plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
 
@@ -298,7 +301,7 @@ alertcondition(largeSwing,   "Kairos Tape large swing", "Confirmed large pivot")
 alertcondition(SUPERLONG,    "Kairos Tape SUPERLONG", "W2T SuperLong: MACD cross 0 + TEMA50>100 + HMA/EMA stack")
 alertcondition(STLong,       "Kairos Tape STLong",    "W2T STLong: CCI cross 0 + HMA above SuperTrend stack")
 alertcondition(SHORT100,     "Kairos Tape SHORT100",  "W2T Short100")
-alertcondition(kairosLong,   "Kairos combined long",  "Tape long + slow/mid cloud up + Wave teal")
+alertcondition(kairosLong,   "Kairos combined long",  "CCI cross 0 + bullish fast/mid cloud + price > slow EMA")
 
 if impulseLong
     alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
@@ -311,4 +314,4 @@ if STLong
 if SHORT100
     alert("KAIROS TAPE SHORT100 | MACD cross down | HMA below ST stack", alert.freq_once_per_bar_close)
 if kairosLong
-    alert("KAIROS LONG | tape trigger + slow/mid cloud UP + Wave teal | score " + str.tostring(score), alert.freq_once_per_bar_close)
+    alert("KAIROS LONG | CCI cross 0 | fast/mid cloud UP | px > slow EMA | score " + str.tostring(score), alert.freq_once_per_bar_close)
