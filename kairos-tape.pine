@@ -1,4 +1,5 @@
-// Kairos Tape v6 — overlay. Pair with Kairos Wave (separate pane). Do not merge.
+// Kairos Tape v6 - overlay. Pair with Kairos Wave (separate pane). Do not merge.
+// Long-only. Wave regular bear-div (price HH + blend LH) prints INV and kills K / STLong / SUPERLONG / IN.
 //@version=6
 indicator("Kairos Tape", shorttitle = "KRS Tape", overlay = true, max_labels_count = 500, max_lines_count = 50)
 
@@ -167,7 +168,7 @@ int vTema = tema1 > tema2 and tema2 > tema3 ? 1 : tema1 < tema2 and tema2 < tema
 int vWt   = wt1 > wt2 ? 1 : wt1 < wt2 ? -1 : 0
 int score = vFast + vMid + vSlow + vPx + vST + vHma + vCci + vMacd + vTema + vWt
 
-// Hidden Wave blend (RSI+CCI+Stoch+MFI) — confluence only, not a second pane.
+// Hidden Wave blend (RSI+CCI+Stoch+MFI) - same default as Kairos Wave. Not a second pane.
 float rsiN = ta.rsi(close, 14) * 4.0 - 200.0
 float stoN = ta.sma(ta.stoch(close, high, low, 14), 3) * 4.0 - 200.0
 float mfiN = (ta.mfi(hlc3, 60) - 50.0) * 4.0
@@ -191,11 +192,10 @@ bool fadeShort = gated and cci < -cciExt and ta.crossover(cci, -cciExt) and vSlo
 bool stEnvUp = gated and ta.crossunder(st3, st1) and stMajorityUp and close > open
 bool stEnvDn = gated and ta.crossover(st3, st1) and stMajorityDn and close < open
 
-// SUPERLONG — exact W2T recipe (lime "L").
+// SUPERLONG - exact W2T recipe (lime "L").
 // Original: emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2
 //           and ta.crossover(macd, 0.0002) and ccibuy and temabuy and temabuy2
-// temabuy2 is TEMA50 > TEMA100 (NOT 34>50 — that swap is why HYPE daily went quiet).
-// macd>0.0002 was BTC-scale; on HYPE/ETH that is the same bar as macd crossing 0.
+// temabuy2 is TEMA50 > TEMA100 (NOT 34>50 - that swap is why HYPE daily went quiet).
 bool showSuperLong = input.bool(true, "Show SUPERLONG", group = "9. W2T recipes")
 bool emabuy3 = MA3 > MA6
 bool hmaaboveema5 = hull80 > MA6
@@ -206,24 +206,16 @@ bool temabuy = tema1 > tema2
 bool temabuy2 = tema3 > tema4
 bool SUPERLONG_RAW = emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2 and ta.crossover(macd, 0) and ccibuy and temabuy and temabuy2
 
-// STLong — the other lime/purple "L" you saw on HYPE daily (original size.small purple).
+// STLong - original size.small purple L.
 // Original: STBUY and CCI cross 0 and TFccibuy and hmabuy and HMA>ST1/2/3 and BullCandle
-// TFccibuy in W2T accidentally used current-TF CCI (same as ccibuy).
-// STBUY (custom HTF ST vs its HMA) is represented here as SuperTrend majority up.
 bool showSTLong = input.bool(true, "Show STLong", group = "9. W2T recipes")
 bool hmabuy = hullFast > hullSlow
 bool hmasupertrendbuy = hullFast > st3 and hullFast > st1 and hullFast > st2
 bool STLong_RAW = stMajorityUp and ta.crossover(cci, 0) and hmabuy and hmasupertrendbuy and close > open
 
-// SHORT100 — original short counterpart
-bool showShort100 = input.bool(false, "Show SHORT100", group = "9. W2T recipes")
-bool hmasupertrendsell = hullFast < st3 and hullFast < st1 and hullFast < st2
-bool hmabeloweema = hullSlow < MA6
-bool SHORT100 = ta.crossunder(macd, 0) and hmasupertrendsell and hmabeloweema and close < open
-
-// Invalidation: regular bearish divergence on the same Wave blend (RSI+CCI+Stoch+MFI).
-// Example: BTC daily prints STLong / SUPERLONG while Wave already has a BEAR div — skip the long.
-// Stays active until a bull div prints or price breaks the pivot high (failed divergence).
+// Invalidation: regular bearish divergence on the Wave blend (RSI+CCI+Stoch+MFI).
+// BTC daily case: Tape prints STLong / SUPERLONG while Wave already has a BEAR label - skip.
+// Sticky until a bull div prints or price breaks the pivot high (failed divergence).
 bool killOnBearDiv = input.bool(true, "Kill longs on Wave bear div", group = "11. Invalidation")
 int invLeft = input.int(5, "Div pivot left", minval = 1, group = "11. Invalidation")
 int invRight = input.int(5, "Div pivot right", minval = 1, group = "11. Invalidation")
@@ -299,7 +291,6 @@ plotshape(showStEnv and stEnvUp,      title = "ST env up",     style = shape.xcr
 plotshape(showStEnv and stEnvDn,      title = "ST env down",   style = shape.xcross,       location = location.abovebar, color = cRose,   size = size.tiny)
 plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
 plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
-plotshape(showShort100 and SHORT100, title = "SHORT100", style = shape.triangledown, location = location.abovebar, color = #ffbcc7, size = size.tiny, text = "S")
 plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = cCopper, size = size.normal, text = "K", textcolor = color.white)
 plotshape(kairosInv, title = "Invalidated long", style = shape.xcross, location = location.abovebar, color = cRose, size = size.small, text = "INV")
 
@@ -323,18 +314,15 @@ if showDash and barstate.islast
     table.cell(dash, 1, 5, str.tostring(stBullCount) + "/3 up", text_color = stMajorityUp ? cTeal : cRose, text_size = size.small)
     table.cell(dash, 0, 6, "Rel vol", text_color = cInk, text_size = size.small)
     table.cell(dash, 1, 6, str.tostring(relVol, "#.00") + "x", text_color = volOk ? cTeal : cRose, text_size = size.small)
-    table.cell(dash, 0, 7, "WT bias", text_color = cInk, text_size = size.small)
-    table.cell(dash, 1, 7, wt1 > wt2 ? "WT+" : "WT-", text_color = wt1 > wt2 ? cTeal : cRose, text_size = size.small)
+    table.cell(dash, 0, 7, "Wave INV", text_color = cInk, text_size = size.small)
+    table.cell(dash, 1, 7, bearDivActive ? "LIVE - skip" : "clear", text_color = bearDivActive ? cRose : cTeal, text_size = size.small)
 
 alertcondition(impulseLong,  "Kairos Tape Impulse Long",  "Impulse long")
 alertcondition(fadeLong,     "Kairos Tape Exhaustion Long",  "CCI rolling over")
-alertcondition(fadeShort,    "Kairos Tape Exhaustion Short", "CCI rolling up")
 alertcondition(stEnvUp,      "Kairos Tape ST env up",   "SuperTrend constructive")
-alertcondition(stEnvDn,      "Kairos Tape ST env down", "SuperTrend destructive")
 alertcondition(largeSwing,   "Kairos Tape large swing", "Confirmed large pivot")
 alertcondition(SUPERLONG,    "Kairos Tape SUPERLONG", "W2T SuperLong: MACD cross 0 + TEMA50>100 + HMA/EMA stack")
 alertcondition(STLong,       "Kairos Tape STLong",    "W2T STLong: CCI cross 0 + HMA above SuperTrend stack")
-alertcondition(SHORT100,     "Kairos Tape SHORT100",  "W2T Short100")
 alertcondition(kairosLong,   "Kairos combined long",  "CCI cross 0 + bullish fast/mid cloud + price > slow EMA")
 alertcondition(kairosInv,    "Kairos long invalidated", "Tape long killed by Wave bearish divergence")
 alertcondition(bearDiv,      "Kairos Wave bear div (on Tape)", "Regular bearish divergence on the composite")
@@ -345,9 +333,7 @@ if SUPERLONG
     alert("KAIROS TAPE SUPERLONG | MACD cross 0 | TEMA50>100 | HMA above slow tape", alert.freq_once_per_bar_close)
 if STLong
     alert("KAIROS TAPE STLong | CCI cross 0 | HMA above ST stack", alert.freq_once_per_bar_close)
-if SHORT100
-    alert("KAIROS TAPE SHORT100 | MACD cross down | HMA below ST stack", alert.freq_once_per_bar_close)
 if kairosLong
     alert("KAIROS LONG | CCI cross 0 | fast/mid cloud UP | px > slow EMA | score " + str.tostring(score), alert.freq_once_per_bar_close)
 if kairosInv
-    alert("KAIROS INVALIDATED | Wave bear div active — skipped long", alert.freq_once_per_bar_close)
+    alert("KAIROS INVALIDATED | Wave bear div active - skipped long", alert.freq_once_per_bar_close)

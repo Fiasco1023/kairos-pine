@@ -1,6 +1,6 @@
-// Kairos Wave v6 — ONE composite line. Pair with Kairos Tape. Do not merge.
+// Kairos Wave v6 - ONE composite line. Pair with Kairos Tape. Do not merge.
 // Legs (RSI, CCI, Stoch, WaveTrend, MFI, VWAP) are scaled to +/-200 and averaged.
-// They are ingredients, not extra plots. Divergences and dots fire on the blend.
+// BEAR label = Tape long invalidation. Not a short entry. No short dots.
 //@version=6
 indicator("Kairos Wave", shorttitle = "KRS Wave", overlay = false, format = format.price, max_labels_count = 100, max_lines_count = 50)
 
@@ -11,7 +11,7 @@ color cInk    = #d8d4c8
 
 bool showComp = input.bool(true, "Composite", group = "Show")
 bool showMA   = input.bool(true, "Composite MA", group = "Show")
-bool showDots = input.bool(true, "Signal dots", group = "Show")
+bool showDots = input.bool(true, "Oversold watch dots", group = "Show")
 bool showDiv  = input.bool(true, "Divergences", group = "Show")
 bool showRaw  = input.bool(false, "Ghost legs (debug)", group = "Show")
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Show")
@@ -84,24 +84,18 @@ float composite = nLegs == 0 ? 0.0 : acc / nLegs
 float compositeMA = maType == "SMA" ? ta.sma(composite, maLen) : ta.ema(composite, maLen)
 
 int nOs = (rsiOn and rsiN <= -zone ? 1 : 0) + (cciOn and cciN <= -zone ? 1 : 0) + (stoOn and stoN <= -zone ? 1 : 0) + (wtOn and wtN <= -zone ? 1 : 0) + (mfiOn and mfiN <= -zone ? 1 : 0) + (vwapOn and vwapN <= -zone ? 1 : 0)
-int nOb = (rsiOn and rsiN >= zone ? 1 : 0) + (cciOn and cciN >= zone ? 1 : 0) + (stoOn and stoN >= zone ? 1 : 0) + (wtOn and wtN >= zone ? 1 : 0) + (mfiOn and mfiN >= zone ? 1 : 0) + (vwapOn and vwapN >= zone ? 1 : 0)
 int needAgree = nLegs > 4 ? nLegs - 2 : 2
 
 float htfClose = request.security(syminfo.tickerid, htf, close[1], barmerge.gaps_off, barmerge.lookahead_on)
 float htfEma = request.security(syminfo.tickerid, htf, ta.ema(close, 50)[1], barmerge.gaps_off, barmerge.lookahead_on)
-bool htfBull = htfClose > htfEma
 bool htfBear = htfClose < htfEma
 
 bool gated = not confirmOnClose or barstate.isconfirmed
 bool crossUp = ta.crossover(composite, compositeMA)
-bool crossDn = ta.crossunder(composite, compositeMA)
 bool inOs = composite <= -zone
-bool inOb = composite >= zone
 
 bool sigLong  = gated and crossUp and inOs
-bool sigShort = gated and crossDn and inOb
 bool primeLong  = sigLong  and nOs >= needAgree and (not requireHtf or not htfBear)
-bool primeShort = sigShort and nOb >= needAgree and (not requireHtf or not htfBull)
 
 _inRange(bool cond) =>
     int bars = ta.barssince(cond)
@@ -142,10 +136,8 @@ color noneCol = color.new(color.white, 100)
 plot(showDiv and plFound ? composite[lbR] : na, offset = -lbR, title = "Bull pivot", color = bullCond ? cTeal : hidBull ? color.new(cTeal, 65) : noneCol, linewidth = 2)
 plot(showDiv and phFound ? composite[lbR] : na, offset = -lbR, title = "Bear pivot", color = bearCond ? cRose : hidBear ? color.new(cRose, 65) : noneCol, linewidth = 2)
 
-plotshape(showDots and primeLong ? composite : na, title = "Prime long", style = shape.diamond, location = location.absolute, color = cCopper, size = size.small)
-plotshape(showDots and primeShort ? composite : na, title = "Prime short", style = shape.diamond, location = location.absolute, color = cRose, size = size.small)
-plotshape(showDots and sigLong and not primeLong ? composite : na, title = "Long", style = shape.circle, location = location.absolute, color = cTeal, size = size.tiny)
-plotshape(showDots and sigShort and not primeShort ? composite : na, title = "Short", style = shape.circle, location = location.absolute, color = cRose, size = size.tiny)
+plotshape(showDots and primeLong ? composite : na, title = "Prime long watch", style = shape.diamond, location = location.absolute, color = cCopper, size = size.small)
+plotshape(showDots and sigLong and not primeLong ? composite : na, title = "Long watch", style = shape.circle, location = location.absolute, color = cTeal, size = size.tiny)
 
 if bullCond
     label.new(bar_index[lbR], composite[lbR], "BULL", style = label.style_label_up, color = cTeal, textcolor = color.black, size = size.small)
@@ -157,13 +149,11 @@ if hidBear
     label.new(bar_index[lbR], composite[lbR], "H Bear", style = label.style_label_down, color = color.new(cRose, 40), textcolor = color.white, size = size.small)
 
 alertcondition(primeLong, "Wave Prime Long", "Blend cross up in OS + most legs oversold")
-alertcondition(primeShort, "Wave Prime Short", "Blend cross down in OB + most legs overbought")
-alertcondition(sigLong, "Wave Long", "Composite crossed above MA in oversold zone")
-alertcondition(sigShort, "Wave Short", "Composite crossed below MA in overbought zone")
+alertcondition(sigLong, "Wave Long watch", "Composite crossed above MA in oversold zone")
 alertcondition(bullCond, "Wave regular bull div", "Regular bullish divergence on composite")
-alertcondition(bearCond, "Wave regular bear div", "Regular bearish divergence on composite")
+alertcondition(bearCond, "Wave regular bear div - Tape invalidation", "Regular bearish divergence. Skip Tape longs until it fails.")
 
 if primeLong
-    alert("KAIROS WAVE prime LONG | blend " + str.tostring(composite, "#.0") + " | legs OS " + str.tostring(nOs) + "/" + str.tostring(nLegs), alert.freq_once_per_bar_close)
-if primeShort
-    alert("KAIROS WAVE prime SHORT | blend " + str.tostring(composite, "#.0") + " | legs OB " + str.tostring(nOb) + "/" + str.tostring(nLegs), alert.freq_once_per_bar_close)
+    alert("KAIROS WAVE prime LONG watch | blend " + str.tostring(composite, "#.0") + " | legs OS " + str.tostring(nOs) + "/" + str.tostring(nLegs), alert.freq_once_per_bar_close)
+if bearCond
+    alert("KAIROS WAVE BEAR DIV | Tape longs invalidated until bull div or pivot-high break", alert.freq_once_per_bar_close)
