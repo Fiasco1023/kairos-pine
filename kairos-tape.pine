@@ -167,6 +167,14 @@ int vTema = tema1 > tema2 and tema2 > tema3 ? 1 : tema1 < tema2 and tema2 < tema
 int vWt   = wt1 > wt2 ? 1 : wt1 < wt2 ? -1 : 0
 int score = vFast + vMid + vSlow + vPx + vST + vHma + vCci + vMacd + vTema + vWt
 
+// Hidden Wave blend (RSI+CCI+Stoch+MFI) — confluence only, not a second pane.
+float rsiN = ta.rsi(close, 14) * 4.0 - 200.0
+float stoN = ta.sma(ta.stoch(close, high, low, 14), 3) * 4.0 - 200.0
+float mfiN = (ta.mfi(hlc3, 60) - 50.0) * 4.0
+float waveBlend = (nz(rsiN) + nz(math.max(-200.0, math.min(200.0, cci))) + nz(stoN) + nz(mfiN)) / 4.0
+float waveMA = ta.ema(waveBlend, 14)
+bool waveUp = waveBlend > waveMA
+
 int longThresh  = input.int(6, "Impulse long score >=", minval = 1, maxval = 10, group = "8. Signals")
 int shortThresh = input.int(-6, "Impulse short score <=", maxval = -1, minval = -10, group = "8. Signals")
 bool showImpulseLong = input.bool(true, "Impulse long (IN)", group = "8. Signals")
@@ -218,6 +226,14 @@ bool hmasupertrendsell = hullFast < st3 and hullFast < st1 and hullFast < st2
 bool hmabeloweema = hullSlow < MA6
 bool SHORT100 = ta.crossunder(macd, 0) and hmasupertrendsell and hmabeloweema and close < open
 
+// Combined rule from the backtest: take Tape longs only with slow+mid cloud UP and Wave teal.
+// Do NOT take bears while the slow cloud is still up (that fade lost on every HYPE formation).
+bool showKairos = input.bool(true, "Kairos long (K)", group = "10. Combined")
+bool kRequireSlow = input.bool(true, "Require slow cloud up", group = "10. Combined")
+bool kRequireMid = input.bool(true, "Require mid cloud up (skip mid-roll)", group = "10. Combined")
+bool kRequireWave = input.bool(true, "Require Wave blend teal", group = "10. Combined")
+bool kairosLong = (impulseLong or STLong or SUPERLONG) and (not kRequireSlow or vSlow == 1) and (not kRequireMid or vMid == 1) and (not kRequireWave or waveUp)
+
 plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
 
 pMA1 = plot(MA1, "MA1", color = showLines ? color.new(cTeal, 20) : na, linewidth = 1)
@@ -247,6 +263,7 @@ plotshape(showStEnv and stEnvDn,      title = "ST env down",   style = shape.xcr
 plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
 plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
 plotshape(showShort100 and SHORT100, title = "SHORT100", style = shape.triangledown, location = location.abovebar, color = #ffbcc7, size = size.tiny, text = "S")
+plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = cCopper, size = size.normal, text = "K", textcolor = color.white)
 
 var table dash = table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
 
@@ -281,6 +298,7 @@ alertcondition(largeSwing,   "Kairos Tape large swing", "Confirmed large pivot")
 alertcondition(SUPERLONG,    "Kairos Tape SUPERLONG", "W2T SuperLong: MACD cross 0 + TEMA50>100 + HMA/EMA stack")
 alertcondition(STLong,       "Kairos Tape STLong",    "W2T STLong: CCI cross 0 + HMA above SuperTrend stack")
 alertcondition(SHORT100,     "Kairos Tape SHORT100",  "W2T Short100")
+alertcondition(kairosLong,   "Kairos combined long",  "Tape long + slow/mid cloud up + Wave teal")
 
 if impulseLong
     alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
@@ -292,3 +310,5 @@ if STLong
     alert("KAIROS TAPE STLong | CCI cross 0 | HMA above ST stack", alert.freq_once_per_bar_close)
 if SHORT100
     alert("KAIROS TAPE SHORT100 | MACD cross down | HMA below ST stack", alert.freq_once_per_bar_close)
+if kairosLong
+    alert("KAIROS LONG | tape trigger + slow/mid cloud UP + Wave teal | score " + str.tostring(score), alert.freq_once_per_bar_close)
