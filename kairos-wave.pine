@@ -13,6 +13,7 @@ bool showComp = input.bool(true, "Composite", group = "Show")
 bool showMA   = input.bool(true, "Composite MA", group = "Show")
 bool showDots = input.bool(true, "Oversold watch dots", group = "Show")
 bool showDiv  = input.bool(true, "Divergences", group = "Show")
+bool showDivLabels = input.bool(true, "BULL / BEAR / hidden labels", group = "Show")
 bool showRaw  = input.bool(false, "Ghost legs (debug)", group = "Show")
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Show")
 
@@ -150,13 +151,13 @@ plot(showDiv and phFound ? composite[lbR] : na, offset = -lbR, title = "Bear piv
 plotshape(showDots and primeLong ? composite : na, title = "Prime long watch", style = shape.diamond, location = location.absolute, color = cCopper, size = size.small)
 plotshape(showDots and sigLong and not primeLong ? composite : na, title = "Long watch", style = shape.circle, location = location.absolute, color = cTeal, size = size.tiny)
 
-if bullCond
+if showDivLabels and bullCond
     label.new(bar_index[lbR], composite[lbR], "BULL", style = label.style_label_up, color = cTeal, textcolor = color.black, size = size.small)
-if hidBull
+if showDivLabels and hidBull
     label.new(bar_index[lbR], composite[lbR], "H Bull", style = label.style_label_up, color = color.new(cTeal, 40), textcolor = color.black, size = size.small)
-if bearCond
+if showDivLabels and bearCond
     label.new(bar_index[lbR], composite[lbR], "BEAR", style = label.style_label_down, color = cRose, textcolor = color.white, size = size.small)
-if hidBear
+if showDivLabels and hidBear
     label.new(bar_index[lbR], composite[lbR], "H Bear", style = label.style_label_down, color = color.new(cRose, 40), textcolor = color.white, size = size.small)
 
 alertcondition(primeLong, "Wave Prime Long", "Blend cross up in OS + most legs oversold")
