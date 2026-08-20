@@ -8,6 +8,13 @@ color cRose   = #c45c4a
 color cCopper = #c9a227
 color cSlate  = #8aa0b4
 color cInk    = #d8d4c8
+// Directional rainbow: cool spectrum when stacked up, warm when stacked down.
+color cFastUp = #00f5d4
+color cFastDn = #ff2d6a
+color cMidUp  = #57cc99
+color cMidDn  = #ff7a3a
+color cSlowUp = #4ea8de
+color cSlowDn = #9b5de5
 
 string profile = input.string("Intraday", "Profile", options = ["Scalp", "Intraday", "Swing", "Custom"], group = "0. Profile")
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "0. Profile")
@@ -278,15 +285,15 @@ bool skippedLong = showInv and invKill and anyLongRaw
 
 plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
 
-pMA1 = plot(MA1, "MA1", color = showLines ? color.new(cTeal, 20) : na, linewidth = 1)
-pMA2 = plot(MA2, "MA2", color = showLines ? color.new(cTeal, 20) : na, linewidth = 1)
-pMA3 = plot(MA3, "MA3", color = showLines ? color.new(cTeal, 10) : na, linewidth = 1)
-pMA4 = plot(MA4, "MA4", color = showLines ? color.new(#7b5ea7, 0) : na, linewidth = 1)
-pMA5 = plot(MA5, "MA5", color = showLines ? color.new(cInk, 40) : na, linewidth = 1)
-pMA6 = plot(MA6, "MA6", color = showLines or showSlow ? color.new(cCopper, 0) : na, linewidth = 2)
-fill(pMA1, pMA2, showClouds ? (vFast > 0 ? color.new(cTeal, 72) : color.new(cRose, 72)) : na, title = "Fast cloud")
-fill(pMA3, pMA4, showClouds ? (vMid  > 0 ? color.new(cTeal, 68) : color.new(cRose, 68)) : na, title = "Mid cloud")
-fill(pMA5, pMA6, showClouds ? (vSlow > 0 ? color.new(cCopper, 78) : color.new(#7b5ea7, 78)) : na, title = "Slow cloud")
+pMA1 = plot(MA1, "MA1", color = showLines ? color.new(vFast > 0 ? cFastUp : cFastDn, 10) : na, linewidth = 1)
+pMA2 = plot(MA2, "MA2", color = showLines ? color.new(vFast > 0 ? cFastUp : cFastDn, 25) : na, linewidth = 1)
+pMA3 = plot(MA3, "MA3", color = showLines ? color.new(vMid  > 0 ? cMidUp  : cMidDn, 5)  : na, linewidth = 1)
+pMA4 = plot(MA4, "MA4", color = showLines ? color.new(vMid  > 0 ? cMidUp  : cMidDn, 20) : na, linewidth = 1)
+pMA5 = plot(MA5, "MA5", color = showLines ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 30) : na, linewidth = 1)
+pMA6 = plot(MA6, "MA6", color = showLines or showSlow ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 0) : na, linewidth = 2)
+fill(pMA1, pMA2, showClouds ? color.new(vFast > 0 ? cFastUp : cFastDn, 68) : na, title = "Fast cloud")
+fill(pMA3, pMA4, showClouds ? color.new(vMid  > 0 ? cMidUp  : cMidDn,  64) : na, title = "Mid cloud")
+fill(pMA5, pMA6, showClouds ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 72) : na, title = "Slow cloud")
 
 bodyMid = plot((open + close) / 2.0, display = display.none, editable = false)
 up3 = plot(dir3 < 0 ? st3 : na, "ST3 up", color = showST ? color.new(cSlate, 40) : na, style = plot.style_linebr, linewidth = 2)
