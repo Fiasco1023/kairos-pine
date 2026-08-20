@@ -113,6 +113,9 @@ float tema1 = f_tema(close, 25)
 float tema2 = f_tema(close, 34)
 float tema3 = f_tema(close, 50)
 
+float hull2 = ta.hma(close, 2)
+float hull80 = ta.hma(close, 80)
+
 float esa = ta.ema(hlc3, 10)
 float dAbs = ta.ema(math.abs(hlc3 - esa), 10)
 float ci = dAbs == 0 ? 0.0 : (hlc3 - esa) / (0.015 * dAbs)
@@ -180,6 +183,31 @@ bool fadeShort = gated and cci < -cciExt and ta.crossover(cci, -cciExt) and vSlo
 bool stEnvUp = gated and ta.crossunder(st3, st1) and stMajorityUp and close > open
 bool stEnvDn = gated and ta.crossover(st3, st1) and stMajorityDn and close < open
 
+// SUPERLONG — original W2T recipe (the unique edge). Kept as a first-class mark.
+// Original compared MACD to 0.0002 (BTC-price-scale only). That is now %MACD
+// crossing zero so it fires on ETH/alts. Other legs are unchanged:
+//   MA3 > MA6
+//   HMA(80) > MA6
+//   HMA(2)  > MA6
+//   HMA(80) > MA3
+//   CCI > 0
+//   TEMA25 > TEMA34 > TEMA50
+bool showSuperLong = input.bool(true, "Show SUPERLONG", group = "9. SuperLong")
+bool emabuy3 = MA3 > MA6
+bool hmaaboveema5 = hull80 > MA6
+bool hmaaboveema = hull2 > MA6
+bool hmaaboveema2 = hull80 > MA3
+bool ccibuy = cci > 0
+bool temabuy = tema1 > tema2
+bool temabuy3 = tema2 > tema3
+bool SUPERLONG = gated and emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2 and ta.crossover(macdPct, 0) and ccibuy and temabuy and temabuy3
+
+// SHORT100 — original W2T short counterpart, %MACD instead of 0.0002
+bool showShort100 = input.bool(true, "Show SHORT100", group = "9. SuperLong")
+bool hmasupertrendsell = hullFast < st3 and hullFast < st1 and hullFast < st2
+bool hmabeloweema = hullSlow < MA6
+bool SHORT100 = gated and ta.crossunder(macdPct, 0) and hmasupertrendsell and hmabeloweema and close < open
+
 plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
 
 pMA1 = plot(MA1, "MA1", color = showLines ? color.new(cTeal, 20) : na, linewidth = 1)
@@ -206,6 +234,8 @@ plotshape(fadeLong,     title = "Exhaustion L",  style = shape.diamond,      loc
 plotshape(fadeShort,    title = "Exhaustion S",  style = shape.diamond,      location = location.belowbar, color = cCopper, size = size.tiny,  text = "EX")
 plotshape(stEnvUp,      title = "ST env up",     style = shape.xcross,       location = location.belowbar, color = cSlate,  size = size.tiny)
 plotshape(stEnvDn,      title = "ST env down",   style = shape.xcross,       location = location.abovebar, color = cRose,   size = size.tiny)
+plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #5cff7a, size = size.small, text = "SL", textcolor = color.white)
+plotshape(showShort100 and SHORT100, title = "SHORT100", style = shape.triangledown, location = location.abovebar, color = #ffbcc7, size = size.small, text = "S")
 
 var table dash = table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
 
@@ -237,8 +267,14 @@ alertcondition(fadeShort,    "Kairos Tape Exhaustion Short", "CCI rolling up")
 alertcondition(stEnvUp,      "Kairos Tape ST env up",   "SuperTrend constructive")
 alertcondition(stEnvDn,      "Kairos Tape ST env down", "SuperTrend destructive")
 alertcondition(largeSwing,   "Kairos Tape large swing", "Confirmed large pivot")
+alertcondition(SUPERLONG,    "Kairos Tape SUPERLONG", "Original W2T SuperLong (percent MACD)")
+alertcondition(SHORT100,     "Kairos Tape SHORT100",  "Original W2T Short100 (percent MACD)")
 
 if impulseLong
     alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
 if impulseShort
     alert("KAIROS TAPE impulse SHORT | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
+if SUPERLONG
+    alert("KAIROS TAPE SUPERLONG | %MACD cross up | CCI+ | TEMA stack | HMA above slow tape", alert.freq_once_per_bar_close)
+if SHORT100
+    alert("KAIROS TAPE SHORT100 | %MACD cross down | HMA below ST stack", alert.freq_once_per_bar_close)
