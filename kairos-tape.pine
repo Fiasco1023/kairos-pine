@@ -1,78 +1,58 @@
-// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// Kairos Tape — overlay successor to Wen2Trade (W2T).
-// Pair with Kairos Wave in a lower pane. Do not merge the two scripts.
-// Pine Script v6 · transparent confluence · no lookahead · bar-close alerts.
-
+// Kairos Tape v6 — overlay. Pair with Kairos Wave (separate pane). Do not merge.
 //@version=6
 indicator("Kairos Tape", shorttitle = "KRS Tape", overlay = true, max_labels_count = 500, max_lines_count = 50)
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 0. Profile
-// Scalp / Intraday / Swing only change MA lengths. HTF is chosen separately so
-// a 1m scalper can still pair 5m bias, and a 4H swinger can pair Daily.
-// ─────────────────────────────────────────────────────────────────────────────
-string profile = input.string("Intraday", "Profile", options = ["Scalp", "Intraday", "Swing", "Custom"], group = "0. Profile", tooltip = "Scalp: faster Fibonacci. Intraday: original W2T 14/21/34/50/100/170. Swing: 21/34/55/89/144/233.")
-bool confirmOnClose = input.bool(true, "Confirm signals on bar close", group = "0. Profile", tooltip = "On: shapes and alerts fire only after the bar closes. Off: forming-bar preview.")
-bool   showDash       = input.bool(true, "Show dashboard", group = "0. Profile")
+color cTeal   = #3aa88a
+color cRose   = #c45c4a
+color cCopper = #c9a227
+color cSlate  = #8aa0b4
+color cInk    = #d8d4c8
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 1. Ribbon (Cipher-A-class idea: a readable MA tape, not 6 noisy lines)
-// Lengths are public Fibonacci / original W2T values. Method is selectable.
-// Optional Heikin Ashi source is a public smoothing technique — not a clone of
-// any vendor ribbon palette or symbol language.
-// ─────────────────────────────────────────────────────────────────────────────
-int in1 = input.int(14, "Length 1", minval = 1, group = "1. Ribbon", inline = "L")
-int in2 = input.int(21, "Length 2", minval = 1, group = "1. Ribbon", inline = "L")
-int in3 = input.int(34, "Length 3", minval = 1, group = "1. Ribbon", inline = "M")
-int in4 = input.int(50, "Length 4", minval = 1, group = "1. Ribbon", inline = "M")
-int in5 = input.int(100, "Length 5", minval = 1, group = "1. Ribbon", inline = "S")
-int in6 = input.int(170, "Length 6", minval = 1, group = "1. Ribbon", inline = "S")
-string maType = input.string("EMA", "Method", options = ["EMA", "SMA", "SMMA (RMA)", "WMA", "VWMA", "HMA"], group = "1. Ribbon")
-bool   useHA  = input.bool(false, "Ribbon source = Heikin Ashi close", group = "1. Ribbon", tooltip = "Smooths the tape. Does not change candles.")
-bool   showClouds = input.bool(true, "Show clouds", group = "1. Ribbon")
-bool   showLines  = input.bool(false, "Show individual MA lines", group = "1. Ribbon")
-bool   showSlow   = input.bool(true, "Always show slow MA (len 6)", group = "1. Ribbon")
+string profile = input.string("Intraday", "Profile", options = ["Scalp", "Intraday", "Swing", "Custom"], group = "0. Profile")
+bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "0. Profile")
+bool showDash = input.bool(true, "Show dashboard", group = "0. Profile")
 
-int len1 = profile == "Scalp" ? 8 : profile == "Swing" ? 21 : profile == "Custom" ? in1 : 14
-int len2 = profile == "Scalp" ? 13 : profile == "Swing" ? 34 : profile == "Custom" ? in2 : 21
-int len3 = profile == "Scalp" ? 21 : profile == "Swing" ? 55 : profile == "Custom" ? in3 : 34
-int len4 = profile == "Scalp" ? 34 : profile == "Swing" ? 89 : profile == "Custom" ? in4 : 50
+int in1 = input.int(14, "Len 1", minval = 1, group = "1. Ribbon", inline = "L")
+int in2 = input.int(21, "Len 2", minval = 1, group = "1. Ribbon", inline = "L")
+int in3 = input.int(34, "Len 3", minval = 1, group = "1. Ribbon", inline = "M")
+int in4 = input.int(50, "Len 4", minval = 1, group = "1. Ribbon", inline = "M")
+int in5 = input.int(100, "Len 5", minval = 1, group = "1. Ribbon", inline = "S")
+int in6 = input.int(170, "Len 6", minval = 1, group = "1. Ribbon", inline = "S")
+string maType = input.string("EMA", "Method", options = ["EMA", "SMA", "RMA", "WMA", "VWMA", "HMA"], group = "1. Ribbon")
+bool showClouds = input.bool(true, "Clouds", group = "1. Ribbon")
+bool showLines  = input.bool(false, "MA lines", group = "1. Ribbon")
+bool showSlow   = input.bool(true, "Show slow MA", group = "1. Ribbon")
+
+int len1 = profile == "Scalp" ? 8  : profile == "Swing" ? 21  : profile == "Custom" ? in1 : 14
+int len2 = profile == "Scalp" ? 13 : profile == "Swing" ? 34  : profile == "Custom" ? in2 : 21
+int len3 = profile == "Scalp" ? 21 : profile == "Swing" ? 55  : profile == "Custom" ? in3 : 34
+int len4 = profile == "Scalp" ? 34 : profile == "Swing" ? 89  : profile == "Custom" ? in4 : 50
 int len5 = profile == "Scalp" ? 55 : profile == "Swing" ? 144 : profile == "Custom" ? in5 : 100
 int len6 = profile == "Scalp" ? 89 : profile == "Swing" ? 233 : profile == "Custom" ? in6 : 170
 
-// Proper HA OHLC (used only as an optional MA source)
-haClose = (open + high + low + close) / 4.0
-var float haOpen = na
-haOpen := na(haOpen[1]) ? (open + close) / 2.0 : (nz(haOpen[1]) + nz(haClose[1])) / 2.0
-
-float ribbonSrc = useHA ? haClose : close
-
 f_ma(float src, int length, string typ) =>
     switch typ
-        "SMA" => ta.sma(src, length)
-        "SMMA (RMA)" => ta.rma(src, length)
-        "WMA" => ta.wma(src, length)
+        "SMA"  => ta.sma(src, length)
+        "RMA"  => ta.rma(src, length)
+        "WMA"  => ta.wma(src, length)
         "VWMA" => ta.vwma(src, length)
-        "HMA" => ta.hma(src, length)
+        "HMA"  => ta.hma(src, length)
         => ta.ema(src, length)
 
-float MA1 = f_ma(ribbonSrc, len1, maType)
-float MA2 = f_ma(ribbonSrc, len2, maType)
-float MA3 = f_ma(ribbonSrc, len3, maType)
-float MA4 = f_ma(ribbonSrc, len4, maType)
-float MA5 = f_ma(ribbonSrc, len5, maType)
-float MA6 = f_ma(ribbonSrc, len6, maType)
+float MA1 = f_ma(close, len1, maType)
+float MA2 = f_ma(close, len2, maType)
+float MA3 = f_ma(close, len3, maType)
+float MA4 = f_ma(close, len4, maType)
+float MA5 = f_ma(close, len5, maType)
+float MA6 = f_ma(close, len6, maType)
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. SuperTrend stack (kept from W2T — three ATR bands as a volatility regime)
-// ─────────────────────────────────────────────────────────────────────────────
-bool showST = input.bool(false, "Show SuperTrend clouds", group = "2. SuperTrend")
+bool showST = input.bool(false, "Show SuperTrend", group = "2. SuperTrend")
 float f1 = input.float(1.0, "Factor 1", minval = 0.1, step = 0.1, group = "2. SuperTrend", inline = "st")
 float f2 = input.float(2.0, "Factor 2", minval = 0.1, step = 0.1, group = "2. SuperTrend", inline = "st")
 float f3 = input.float(3.0, "Factor 3", minval = 0.1, step = 0.1, group = "2. SuperTrend", inline = "st")
-int   p1 = input.int(10, "ATR 1", minval = 1, group = "2. SuperTrend", inline = "ap")
-int   p2 = input.int(11, "ATR 2", minval = 1, group = "2. SuperTrend", inline = "ap")
-int   p3 = input.int(12, "ATR 3", minval = 1, group = "2. SuperTrend", inline = "ap")
+int p1 = input.int(10, "ATR 1", minval = 1, group = "2. SuperTrend", inline = "ap")
+int p2 = input.int(11, "ATR 2", minval = 1, group = "2. SuperTrend", inline = "ap")
+int p3 = input.int(12, "ATR 3", minval = 1, group = "2. SuperTrend", inline = "ap")
 
 [st1, dir1] = ta.supertrend(f1, p1)
 [st2, dir2] = ta.supertrend(f2, p2)
@@ -83,180 +63,94 @@ bool stMajorityDn = stBullCount <= 1
 bool stFlipUp = dir3 < 0 and dir3[1] >= 0
 bool stFlipDn = dir3 > 0 and dir3[1] <= 0
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. Structure pivots (replaces the repainting Semafor zigzag)
-// Confirmed pivots only: the label is printed `right` bars AFTER the swing.
-// That lag is the price of not repainting.
-// ─────────────────────────────────────────────────────────────────────────────
-bool showLarge  = input.bool(true, "Large swings", group = "3. Structure", inline = "lg")
-int  lgLeft     = input.int(24, "L", minval = 2, group = "3. Structure", inline = "lg")
-int  lgRight    = input.int(24, "", minval = 2, group = "3. Structure", inline = "lg")
+bool showLarge = input.bool(true, "Large swings", group = "3. Structure", inline = "lg")
+int lgLeft = input.int(24, "L", minval = 2, group = "3. Structure", inline = "lg")
+int lgRight = input.int(24, "", minval = 2, group = "3. Structure", inline = "lg")
 bool showMedium = input.bool(true, "Medium swings", group = "3. Structure", inline = "md")
-int  mdLeft     = input.int(8, "M", minval = 2, group = "3. Structure", inline = "md")
-int  mdRight    = input.int(8, "", minval = 2, group = "3. Structure", inline = "md")
-bool showSmall  = input.bool(false, "Small swings", group = "3. Structure", inline = "sm")
-int  smLeft     = input.int(3, "S", minval = 2, group = "3. Structure", inline = "sm")
-int  smRight    = input.int(3, "", minval = 2, group = "3. Structure", inline = "sm")
+int mdLeft = input.int(8, "M", minval = 2, group = "3. Structure", inline = "md")
+int mdRight = input.int(8, "", minval = 2, group = "3. Structure", inline = "md")
 
-color colLg = input.color(#c45c4a, "Large", group = "3. Structure", inline = "cl")
-color colMd = input.color(#3aa88a, "Med", group = "3. Structure", inline = "cl")
-color colSm = input.color(#c9a227, "Small", group = "3. Structure", inline = "cl")
-
-// Confirmed pivots must be calculated every bar (never inside a ternary).
-// Labels are drawn in the global `if` (legal). `if` inside a user function is
-// an expression in Pine v6 and cannot be used only for side effects (CE10144).
 float lgHi = ta.pivothigh(high, lgLeft, lgRight)
 float lgLo = ta.pivotlow(low, lgLeft, lgRight)
 float mdHi = ta.pivothigh(high, mdLeft, mdRight)
 float mdLo = ta.pivotlow(low, mdLeft, mdRight)
-float smHi = ta.pivothigh(high, smLeft, smRight)
-float smLo = ta.pivotlow(low, smLeft, smRight)
 
 if showLarge and not na(lgHi)
-    label.new(bar_index - lgRight, lgHi, "", xloc = xloc.bar_index, color = colLg, style = label.style_circle, size = size.small)
+    label.new(bar_index - lgRight, lgHi, "", xloc = xloc.bar_index, color = cRose, style = label.style_circle, size = size.small)
 if showLarge and not na(lgLo)
-    label.new(bar_index - lgRight, lgLo, "", xloc = xloc.bar_index, color = colLg, style = label.style_circle, size = size.small)
+    label.new(bar_index - lgRight, lgLo, "", xloc = xloc.bar_index, color = cRose, style = label.style_circle, size = size.small)
 if showMedium and not na(mdHi)
-    label.new(bar_index - mdRight, mdHi, "", xloc = xloc.bar_index, color = colMd, style = label.style_circle, size = size.tiny)
+    label.new(bar_index - mdRight, mdHi, "", xloc = xloc.bar_index, color = cTeal, style = label.style_circle, size = size.tiny)
 if showMedium and not na(mdLo)
-    label.new(bar_index - mdRight, mdLo, "", xloc = xloc.bar_index, color = colMd, style = label.style_circle, size = size.tiny)
-if showSmall and not na(smHi)
-    label.new(bar_index - smRight, smHi, "", xloc = xloc.bar_index, color = colSm, style = label.style_circle, size = size.tiny)
-if showSmall and not na(smLo)
-    label.new(bar_index - smRight, smLo, "", xloc = xloc.bar_index, color = colSm, style = label.style_circle, size = size.tiny)
+    label.new(bar_index - mdRight, mdLo, "", xloc = xloc.bar_index, color = cTeal, style = label.style_circle, size = size.tiny)
 
 bool largeSwing = showLarge and (not na(lgHi) or not na(lgLo))
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. Internals used for scoring (HMA / TEMA / CCI / MACD / WT)
-// These are W2T's unique mix. New signals use them as VOTES, not a 12-way AND.
-// ─────────────────────────────────────────────────────────────────────────────
-int hmaFastLen = input.int(6, "HMA fast", minval = 1, group = "4. Momentum internals")
-int hmaSlowLen = input.int(12, "HMA slow", minval = 1, group = "4. Momentum internals")
-int hmaStructLen = input.int(80, "HMA structure", minval = 1, group = "4. Momentum internals")
+int hmaFastLen = input.int(6, "HMA fast", minval = 1, group = "4. Internals")
+int hmaSlowLen = input.int(12, "HMA slow", minval = 1, group = "4. Internals")
 float hullFast = ta.hma(close, hmaFastLen)
 float hullSlow = ta.hma(close, hmaSlowLen)
-float hullStruct = ta.hma(close, hmaStructLen)
 
-int cciLen = input.int(50, "CCI length", minval = 1, group = "4. Momentum internals")
+int cciLen = input.int(50, "CCI length", minval = 1, group = "4. Internals")
 float cci = ta.cci(ohlc4, cciLen)
-int cciSoft = input.int(10, "CCI bar-color threshold", group = "4. Momentum internals", tooltip = "Original W2T used ±10. Candles tint above/below this, not ±100.")
-int cciExt = input.int(166, "CCI exhaustion", group = "4. Momentum internals")
+int cciSoft = input.int(10, "CCI tint", group = "4. Internals")
+int cciExt = input.int(166, "CCI exhaustion", group = "4. Internals")
 
-int macdFast = input.int(12, "MACD fast", minval = 1, group = "4. Momentum internals", inline = "macd")
-int macdSlow = input.int(20, "MACD slow", minval = 1, group = "4. Momentum internals", inline = "macd")
-int macdSig  = input.int(9, "Signal", minval = 1, group = "4. Momentum internals", inline = "macd")
-float macdFastMA = ta.ema(close, macdFast)
-float macdSlowMA = ta.ema(close, macdSlow)
-float macd = macdFastMA - macdSlowMA
+int macdFast = input.int(12, "MACD fast", minval = 1, group = "4. Internals", inline = "m")
+int macdSlow = input.int(20, "MACD slow", minval = 1, group = "4. Internals", inline = "m")
+int macdSig = input.int(9, "MACD sig", minval = 1, group = "4. Internals", inline = "m")
+float macd = ta.ema(close, macdFast) - ta.ema(close, macdSlow)
 float macdSignal = ta.ema(macd, macdSig)
-// Percent MACD — original 0.0002 threshold was BTC-price-scale specific and
-// silent on ETH/alts. Crossing zero of percent MACD is asset-agnostic.
 float macdPct = close != 0 ? (macd / close) * 100.0 : 0.0
 
-int tema1Len = input.int(25, "TEMA 1", minval = 1, group = "4. Momentum internals", inline = "tema")
-int tema2Len = input.int(34, "TEMA 2", minval = 1, group = "4. Momentum internals", inline = "tema")
-int tema3Len = input.int(50, "TEMA 3", minval = 1, group = "4. Momentum internals", inline = "tema")
 f_tema(float src, int len) =>
     e1 = ta.ema(src, len)
     e2 = ta.ema(e1, len)
     e3 = ta.ema(e2, len)
     3.0 * e1 - 3.0 * e2 + e3
-float tema1 = f_tema(close, tema1Len)
-float tema2 = f_tema(close, tema2Len)
-float tema3 = f_tema(close, tema3Len)
 
-// LazyBear WaveTrend (public) — computed for the dashboard / score only.
-// The oscillator pane (Kairos Wave) is the place to read the waves themselves.
-int wtN1 = 10
-int wtN2 = 21
-float esa = ta.ema(hlc3, wtN1)
-float dAbs = ta.ema(math.abs(hlc3 - esa), wtN1)
+float tema1 = f_tema(close, 25)
+float tema2 = f_tema(close, 34)
+float tema3 = f_tema(close, 50)
+
+float esa = ta.ema(hlc3, 10)
+float dAbs = ta.ema(math.abs(hlc3 - esa), 10)
 float ci = dAbs == 0 ? 0.0 : (hlc3 - esa) / (0.015 * dAbs)
-float wt1 = ta.ema(ci, wtN2)
+float wt1 = ta.ema(ci, 21)
 float wt2 = ta.sma(wt1, 4)
 
-int stochLen = 14
-int stochSmooth = 3
-float rsiVal = ta.rsi(close, 14)
-float k = ta.sma(ta.stoch(rsiVal, rsiVal, rsiVal, stochLen), stochSmooth)
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. Regime — Kaufman ER + ADX + Choppiness (public, well-studied)
-// TREND: take impulse signals. CHOP: fade / stand aside. TRANSITION: reduce size.
-// ─────────────────────────────────────────────────────────────────────────────
-int erLen = input.int(20, "Efficiency lookback", minval = 5, group = "5. Regime")
+int erLen = input.int(20, "ER lookback", minval = 5, group = "5. Regime")
 float erDen = math.sum(math.abs(close - close[1]), erLen)
 float er = erDen == 0 ? 1.0 : math.abs(close - close[erLen]) / erDen
-// ADX is the third value of ta.dmi — there is no ta.adx() builtin.
 [_diPlus, _diMinus, adxVal] = ta.dmi(14, 14)
-int chopLen = input.int(14, "Choppiness length", minval = 2, group = "5. Regime")
+int chopLen = input.int(14, "CHOP length", minval = 2, group = "5. Regime")
 float chopRange = ta.highest(high, chopLen) - ta.lowest(low, chopLen)
 float chop = chopRange == 0 ? 50.0 : 100.0 * math.log10(math.sum(ta.atr(1), chopLen) / chopRange) / math.log10(chopLen)
 float erTrend = input.float(0.30, "ER trend >=", minval = 0.05, step = 0.05, group = "5. Regime")
 float adxTrend = input.float(20.0, "ADX trend >=", minval = 5, group = "5. Regime")
-float chopTrend = input.float(61.8, "CHOP range >= (chop)", minval = 30, group = "5. Regime")
-
+float chopTrend = input.float(61.8, "CHOP range >=", minval = 30, group = "5. Regime")
+bool blockChop = input.bool(true, "Suppress impulse in CHOP", group = "5. Regime")
 bool isChop = chop >= chopTrend or (er < 0.20 and adxVal < 18)
 bool isTrend = er >= erTrend and adxVal >= adxTrend and chop < chopTrend
 string regime = isChop ? "CHOP" : isTrend ? "TREND" : "TRANSITION"
 
-bool blockChop = input.bool(true, "Suppress impulse signals in CHOP", group = "5. Regime")
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 6. Volume + session VWAP (public)
-// ─────────────────────────────────────────────────────────────────────────────
-int volLen = input.int(20, "Relative volume SMA", minval = 1, group = "6. Volume / VWAP")
-float volMult = input.float(1.0, "Min relative volume", minval = 0.0, step = 0.1, group = "6. Volume / VWAP")
+int volLen = input.int(20, "Rel volume SMA", minval = 1, group = "6. Volume")
+float volMult = input.float(1.0, "Min rel volume", minval = 0.0, step = 0.1, group = "6. Volume")
+bool requireVol = input.bool(true, "Require volume for impulse", group = "6. Volume")
+bool showVwap = input.bool(false, "Show VWAP", group = "6. Volume")
 float relVol = ta.sma(volume, volLen) == 0 ? 1.0 : volume / ta.sma(volume, volLen)
 bool volOk = relVol >= volMult
-bool requireVol = input.bool(true, "Require volume for impulse", group = "6. Volume / VWAP")
-bool showVwap = input.bool(false, "Show session VWAP", group = "6. Volume / VWAP")
 float vwapVal = ta.vwap(hlc3)
-bool aboveVwap = close > vwapVal
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 7. Higher-timeframe bias (strict = last CLOSED HTF bar — no lookahead)
-// ─────────────────────────────────────────────────────────────────────────────
-string htf = input.timeframe("60", "HTF", group = "7. Higher timeframe", tooltip = "Scalp: 5 or 15. Intraday: 60 or 240. Swing: D.")
-bool htfStrict = input.bool(true, "Use last closed HTF bar (anti-repaint)", group = "7. Higher timeframe")
-bool requireHtf = input.bool(true, "Require HTF agreement for impulse", group = "7. Higher timeframe")
-
-// Last-closed HTF bar: offset lives INSIDE the function (each series), then the
-// tuple is passed to request.security. Pine v6 cannot apply [] to a tuple, so
-// `htfPack()[1]` is illegal and was cascading into dozens of follow-on errors.
-f_htfLive() =>
-    esaH = ta.ema(hlc3, 10)
-    dH = ta.ema(math.abs(hlc3 - esaH), 10)
-    ciH = dH == 0 ? 0.0 : (hlc3 - esaH) / (0.015 * dH)
-    wtH = ta.ema(ciH, 21)
-    emaH = ta.ema(close, 50)
-    cciH = ta.cci(ohlc4, 50)
-    [wtH, emaH, cciH, close]
-
-f_htfClosed() =>
-    esaH = ta.ema(hlc3, 10)
-    dH = ta.ema(math.abs(hlc3 - esaH), 10)
-    ciH = dH == 0 ? 0.0 : (hlc3 - esaH) / (0.015 * dH)
-    wtH = ta.ema(ciH, 21)
-    emaH = ta.ema(close, 50)
-    cciH = ta.cci(ohlc4, 50)
-    [wtH[1], emaH[1], cciH[1], close[1]]
-
-[htfWtRaw, htfEmaRaw, htfCciRaw, htfCloseRaw] = request.security(syminfo.tickerid, htf, f_htfLive(), barmerge.gaps_off, barmerge.lookahead_off)
-[htfWtC, htfEmaC, htfCciC, htfCloseC] = request.security(syminfo.tickerid, htf, f_htfClosed(), barmerge.gaps_off, barmerge.lookahead_on)
-float htfWt = htfStrict ? htfWtC : htfWtRaw
-float htfEma = htfStrict ? htfEmaC : htfEmaRaw
-float htfCci = htfStrict ? htfCciC : htfCciRaw
-float htfClose = htfStrict ? htfCloseC : htfCloseRaw
-bool htfBull = htfClose > htfEma and htfWt > 0 and htfCci > 0
-bool htfBear = htfClose < htfEma and htfWt < 0 and htfCci < 0
+string htf = input.timeframe("60", "HTF", group = "7. HTF")
+bool requireHtf = input.bool(true, "Require HTF agreement", group = "7. HTF")
+float htfClose = request.security(syminfo.tickerid, htf, close[1], barmerge.gaps_off, barmerge.lookahead_on)
+float htfEma50 = request.security(syminfo.tickerid, htf, ta.ema(close, 50)[1], barmerge.gaps_off, barmerge.lookahead_on)
+float htfCci50 = request.security(syminfo.tickerid, htf, ta.cci(ohlc4, 50)[1], barmerge.gaps_off, barmerge.lookahead_on)
+bool htfBull = htfClose > htfEma50 and htfCci50 > 0
+bool htfBear = htfClose < htfEma50 and htfCci50 < 0
 int htfVote = htfBull ? 1 : htfBear ? -1 : 0
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 8. Transparent confluence score (−10 … +10)
-// Each component is independently readable on the dashboard. Nothing is hidden.
-// ─────────────────────────────────────────────────────────────────────────────
 int vFast = MA1 > MA2 ? 1 : MA1 < MA2 ? -1 : 0
 int vMid  = MA3 > MA4 ? 1 : MA3 < MA4 ? -1 : 0
 int vSlow = MA5 > MA6 ? 1 : MA5 < MA6 ? -1 : 0
@@ -268,180 +162,83 @@ int vMacd = macd > macdSignal ? 1 : macd < macdSignal ? -1 : 0
 int vTema = tema1 > tema2 and tema2 > tema3 ? 1 : tema1 < tema2 and tema2 < tema3 ? -1 : 0
 int vWt   = wt1 > wt2 ? 1 : wt1 < wt2 ? -1 : 0
 int score = vFast + vMid + vSlow + vPx + vST + vHma + vCci + vMacd + vTema + vWt
-int longThresh  = input.int(6, "Impulse long score ≥", minval = 1, maxval = 10, group = "8. Signals")
-int shortThresh = input.int(-6, "Impulse short score ≤", maxval = -1, minval = -10, group = "8. Signals")
 
-bool bullCandle = close > open
-bool bearCandle = close < open
-bool gated = (not confirmOnClose or barstate.isconfirmed)
+int longThresh  = input.int(6, "Impulse long score >=", minval = 1, maxval = 10, group = "8. Signals")
+int shortThresh = input.int(-6, "Impulse short score <=", maxval = -1, minval = -10, group = "8. Signals")
 
-// Triggers — a vote stack without a trigger is just bias, not an entry.
-bool trigLong = ta.crossover(cci, 0) or ta.crossover(hullFast, hullSlow) or stFlipUp or ta.crossover(macdPct, 0)
+bool gated = not confirmOnClose or barstate.isconfirmed
+bool trigLong  = ta.crossover(cci, 0) or ta.crossover(hullFast, hullSlow) or stFlipUp or ta.crossover(macdPct, 0)
 bool trigShort = ta.crossunder(cci, 0) or ta.crossunder(hullFast, hullSlow) or stFlipDn or ta.crossunder(macdPct, 0)
-
 bool chopBlock = blockChop and regime == "CHOP"
 bool volGate = not requireVol or volOk
 bool htfGateL = not requireHtf or htfVote >= 0
 bool htfGateS = not requireHtf or htfVote <= 0
-
-bool impulseLong = gated and not chopBlock and volGate and htfGateL and score >= longThresh and trigLong and bullCandle
-bool impulseShort = gated and not chopBlock and volGate and htfGateS and score <= shortThresh and trigShort and bearCandle
-
-// Exhaustion / fade — mean-revert only in CHOP or at CCI extremes against the tape
-bool fadeLong = gated and cci > cciExt and ta.crossunder(cci, cciExt) and vSlow == 1
+bool impulseLong  = gated and not chopBlock and volGate and htfGateL and score >= longThresh and trigLong and close > open
+bool impulseShort = gated and not chopBlock and volGate and htfGateS and score <= shortThresh and trigShort and close < open
+bool fadeLong  = gated and cci > cciExt and ta.crossunder(cci, cciExt) and vSlow == 1
 bool fadeShort = gated and cci < -cciExt and ta.crossover(cci, -cciExt) and vSlow == -1
-
-// SuperTrend environment marks (W2T X-crosses, cleaned)
-bool stEnvUp = gated and ta.crossunder(st3, st1) and stMajorityUp and bullCandle
-bool stEnvDn = gated and ta.crossover(st3, st1) and stMajorityDn and bearCandle
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 9. Optional legacy W2T recipes (bugs fixed, off by default)
-// Original SUPERLONG used macd vs 0.0002 (BTC-specific). Replaced with % MACD 0.
-// Original TFccibuy used the CURRENT-TF CCI by accident (variable cci2, not CCI2).
-// ─────────────────────────────────────────────────────────────────────────────
-bool showLegacy = input.bool(false, "Show legacy W2T shapes", group = "9. Legacy W2T recipes")
-int hma2len = 2
-int hma7len = 45
-int hma8len = 80
-int hma6len = 140
-float hull2 = ta.hma(close, hma2len)
-float hull7 = ta.hma(close, hma7len)
-float hull8 = ta.hma(close, hma8len)
-float hull6 = ta.hma(close, hma6len)
-bool temabuy = tema1 > tema2
-bool temabuy2 = tema3 > f_tema(close, 100)
-bool emabuy3 = MA3 > MA6
-bool hmaaboveema = hull2 > MA6
-bool hmaaboveema2 = hullStruct > MA3
-bool hmaaboveema5 = hull8 > MA6
-bool hmaaboveema4 = hullStruct > MA6
-bool hmabuy = hullFast > hullSlow
-bool hmasell = hullFast < hullSlow
-bool hmabuy2 = hull2 > hullStruct
-bool hmabuy5 = hull7 > hull8
-bool hmasupertrendbuy = hullFast > st3 and hullFast > st1 and hullFast > st2
-bool hmasupertrendsell = hullFast < st3 and hullFast < st1 and hullFast < st2
-bool hmabeloweema = hullSlow < MA6
-bool hmabelowema1 = hull2 < MA6
-bool ccibuy = cci > 0
-bool ccisell = cci < 0
-bool ccibuy2 = cci < 166
-bool TFccibuy = htfCci > 0   // FIX: original compared current-TF cci2
-bool TFccisell = htfCci < 0
-
-bool SUPERLONG = gated and emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2 and ta.crossover(macdPct, 0) and ccibuy and temabuy and tema2 > tema3
-bool SHORT100 = gated and ta.crossunder(macdPct, 0) and hmasupertrendsell and hmabeloweema and bearCandle
-bool LONG3min = gated and ta.crossover(cci, 0) and TFccibuy and hmabuy and hmasupertrendbuy
-bool SHORT3min = gated and ta.crossunder(cci, 0) and TFccisell and hmasell and hmasupertrendsell and hmabelowema1
-bool STLong = gated and (htfWt > 0) and ta.crossover(cci, 0) and TFccibuy and hmabuy and hmasupertrendbuy and bullCandle
-bool STShort = gated and (htfWt < 0) and ta.crossunder(cci, 0) and TFccisell and hmasell and hmasupertrendsell
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 10. Visuals
-// Palette is copper / teal / slate — intentionally not Market Cipher cyan/white.
-// ─────────────────────────────────────────────────────────────────────────────
-color cTeal = #3aa88a
-color cRose = #c45c4a
-color cCopper = #c9a227
-color cSlate = #8aa0b4
+bool stEnvUp = gated and ta.crossunder(st3, st1) and stMajorityUp and close > open
+bool stEnvDn = gated and ta.crossover(st3, st1) and stMajorityDn and close < open
 
 plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
 
-bodyMid1 = plot((open + close) / 2.0, display = display.none, editable = false)
-bodyMid2 = plot((open + close) / 2.0, display = display.none, editable = false)
-bodyMid3 = plot((open + close) / 2.0, display = display.none, editable = false)
-up1 = plot(dir1 < 0 ? st1 : na, "ST1 up", color = showST ? color.new(cSlate, 70) : na, style = plot.style_linebr, display = display.none)
-dn1 = plot(dir1 < 0 ? na : st1, "ST1 dn", color = showST ? color.new(cRose, 70) : na, style = plot.style_linebr, display = display.none)
-up2 = plot(dir2 < 0 ? st2 : na, "ST2 up", color = showST ? color.new(cSlate, 60) : na, style = plot.style_linebr, display = display.none)
-dn2 = plot(dir2 < 0 ? na : st2, "ST2 dn", color = showST ? color.new(cRose, 60) : na, style = plot.style_linebr, display = display.none)
+pMA1 = plot(MA1, "MA1", color = showLines ? color.new(cTeal, 20) : na, linewidth = 1)
+pMA2 = plot(MA2, "MA2", color = showLines ? color.new(cTeal, 20) : na, linewidth = 1)
+pMA3 = plot(MA3, "MA3", color = showLines ? color.new(cTeal, 10) : na, linewidth = 1)
+pMA4 = plot(MA4, "MA4", color = showLines ? color.new(#7b5ea7, 0) : na, linewidth = 1)
+pMA5 = plot(MA5, "MA5", color = showLines ? color.new(cInk, 40) : na, linewidth = 1)
+pMA6 = plot(MA6, "MA6", color = showLines or showSlow ? color.new(cCopper, 0) : na, linewidth = 2)
+fill(pMA1, pMA2, showClouds ? (vFast > 0 ? color.new(cTeal, 72) : color.new(cRose, 72)) : na, title = "Fast cloud")
+fill(pMA3, pMA4, showClouds ? (vMid  > 0 ? color.new(cTeal, 68) : color.new(cRose, 68)) : na, title = "Mid cloud")
+fill(pMA5, pMA6, showClouds ? (vSlow > 0 ? color.new(cCopper, 78) : color.new(#7b5ea7, 78)) : na, title = "Slow cloud")
+
+bodyMid = plot((open + close) / 2.0, display = display.none, editable = false)
 up3 = plot(dir3 < 0 ? st3 : na, "ST3 up", color = showST ? color.new(cSlate, 40) : na, style = plot.style_linebr, linewidth = 2)
-dn3 = plot(dir3 < 0 ? na : st3, "ST3 dn", color = showST ? color.new(cRose, 40) : na, style = plot.style_linebr, linewidth = 2)
-fill(bodyMid1, up1, showST ? color.new(cTeal, 82) : na, title = "ST up 1")
-fill(bodyMid1, dn1, showST ? color.new(cRose, 82) : na, title = "ST dn 1")
-fill(bodyMid2, up2, showST ? color.new(cTeal, 86) : na, title = "ST up 2")
-fill(bodyMid2, dn2, showST ? color.new(cRose, 86) : na, title = "ST dn 2")
-fill(bodyMid3, up3, showST ? color.new(cTeal, 88) : na, title = "ST up 3")
-fill(bodyMid3, dn3, showST ? color.new(cRose, 88) : na, title = "ST dn 3")
+dn3 = plot(dir3 > 0 ? st3 : na, "ST3 dn", color = showST ? color.new(cRose, 40) : na, style = plot.style_linebr, linewidth = 2)
+fill(bodyMid, up3, showST ? color.new(cTeal, 88) : na, title = "ST up")
+fill(bodyMid, dn3, showST ? color.new(cRose, 88) : na, title = "ST dn")
 
-color lineCol1 = showLines ? color.new(cTeal, 20) : na
-color lineCol2 = showLines ? color.new(cTeal, 20) : na
-color lineCol3 = showLines ? color.new(cTeal, 10) : na
-color lineCol4 = showLines ? color.new(#7b5ea7, 0) : na
-color lineCol5 = showLines ? color.new(#d8d4c8, 40) : na
-color lineCol6 = showLines or showSlow ? color.new(cCopper, 0) : na
-
-pMA1 = plot(MA1, "MA1", color = lineCol1, linewidth = 1)
-pMA2 = plot(MA2, "MA2", color = lineCol2, linewidth = 1)
-pMA3 = plot(MA3, "MA3", color = lineCol3, linewidth = 1)
-pMA4 = plot(MA4, "MA4", color = lineCol4, linewidth = 1)
-pMA5 = plot(MA5, "MA5", color = lineCol5, linewidth = 1)
-pMA6 = plot(MA6, "MA6", color = lineCol6, linewidth = 2)
-
-color cloudFast = vFast > 0 ? color.new(cTeal, 72) : color.new(cRose, 72)
-color cloudMid  = vMid  > 0 ? color.new(cTeal, 68) : color.new(cRose, 68)
-color cloudSlow = vSlow > 0 ? color.new(cCopper, 78) : color.new(#7b5ea7, 78)
-fill(pMA1, pMA2, showClouds ? cloudFast : na, title = "Fast cloud")
-fill(pMA3, pMA4, showClouds ? cloudMid : na, title = "Mid cloud")
-fill(pMA5, pMA6, showClouds ? cloudSlow : na, title = "Slow cloud")
-
-// Single barcolor pass (original stacked two calls; the second overwrote the first)
 barcolor(cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
 
-plotshape(impulseLong, title = "Impulse Long", style = shape.triangleup, location = location.belowbar, color = color.new(cTeal, 0), size = size.small, text = "IN", textcolor = color.white)
-plotshape(impulseShort, title = "Impulse Short", style = shape.triangledown, location = location.abovebar, color = color.new(cRose, 0), size = size.small, text = "IN", textcolor = color.white)
-plotshape(fadeLong, title = "Exhaustion Long", style = shape.diamond, location = location.abovebar, color = color.new(cCopper, 0), size = size.tiny, text = "EX")
-plotshape(fadeShort, title = "Exhaustion Short", style = shape.diamond, location = location.belowbar, color = color.new(cCopper, 0), size = size.tiny, text = "EX")
-plotshape(stEnvUp, title = "ST environment up", style = shape.xcross, location = location.belowbar, color = color.new(cSlate, 0), size = size.tiny)
-plotshape(stEnvDn, title = "ST environment down", style = shape.xcross, location = location.abovebar, color = color.new(cRose, 20), size = size.tiny)
+plotshape(impulseLong,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = cTeal,   size = size.small, text = "IN", textcolor = color.white)
+plotshape(impulseShort, title = "Impulse Short", style = shape.triangledown, location = location.abovebar, color = cRose,   size = size.small, text = "IN", textcolor = color.white)
+plotshape(fadeLong,     title = "Exhaustion L",  style = shape.diamond,      location = location.abovebar, color = cCopper, size = size.tiny,  text = "EX")
+plotshape(fadeShort,    title = "Exhaustion S",  style = shape.diamond,      location = location.belowbar, color = cCopper, size = size.tiny,  text = "EX")
+plotshape(stEnvUp,      title = "ST env up",     style = shape.xcross,       location = location.belowbar, color = cSlate,  size = size.tiny)
+plotshape(stEnvDn,      title = "ST env down",   style = shape.xcross,       location = location.abovebar, color = cRose,   size = size.tiny)
 
-plotshape(showLegacy ? SUPERLONG : false, title = "Legacy SuperLong", style = shape.triangleup, location = location.belowbar, color = color.new(#5cff7a, 0), size = size.tiny, text = "L")
-plotshape(showLegacy ? SHORT100 : false, title = "Legacy Short100", style = shape.triangledown, location = location.abovebar, color = color.new(#ffbcc7, 0), size = size.tiny, text = "S")
-plotshape(showLegacy ? LONG3min : false, title = "Legacy Long HTF", style = shape.triangleup, location = location.belowbar, color = color.new(#d085f3, 0), size = size.tiny, text = "L3")
-plotshape(showLegacy ? SHORT3min : false, title = "Legacy Bear HTF", style = shape.labeldown, location = location.abovebar, color = color.new(#fd2f2f, 0), size = size.tiny, text = "B", textcolor = color.white)
-plotshape(showLegacy ? STLong : false, title = "Legacy ST Long", style = shape.triangleup, location = location.belowbar, color = color.new(#e597ff, 0), size = size.tiny, text = "ST")
-plotshape(showLegacy ? STShort : false, title = "Legacy ST Short", style = shape.triangledown, location = location.abovebar, color = color.new(#ff9797, 0), size = size.tiny, text = "ST")
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 11. Dashboard
-// ─────────────────────────────────────────────────────────────────────────────
-var table dash = table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, border_color = color.new(cCopper, 55), frame_color = color.new(cCopper, 55), frame_width = 1)
+var table dash = table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
 
 if showDash and barstate.islast
     color regimeCol = regime == "TREND" ? cTeal : regime == "CHOP" ? cRose : cCopper
-    color scoreCol = score >= longThresh ? cTeal : score <= shortThresh ? cRose : #d8d4c8
-    color htfCol = htfBull ? cTeal : htfBear ? cRose : #d8d4c8
-    table.cell(dash, 0, 0, "KAIROS TAPE", text_color = cCopper, text_size = size.small, bgcolor = color.new(#141821, 10))
-    table.cell(dash, 1, 0, profile, text_color = cCopper, text_size = size.small, bgcolor = color.new(#141821, 10))
-    table.cell(dash, 0, 1, "Regime", text_color = color.new(#d8d4c8, 20), text_size = size.small)
+    color scoreCol = score >= longThresh ? cTeal : score <= shortThresh ? cRose : cInk
+    color htfCol = htfBull ? cTeal : htfBear ? cRose : cInk
+    table.cell(dash, 0, 0, "KAIROS TAPE", text_color = cCopper, text_size = size.small)
+    table.cell(dash, 1, 0, profile, text_color = cCopper, text_size = size.small)
+    table.cell(dash, 0, 1, "Regime", text_color = cInk, text_size = size.small)
     table.cell(dash, 1, 1, regime, text_color = regimeCol, text_size = size.small)
-    table.cell(dash, 0, 2, "Score", text_color = color.new(#d8d4c8, 20), text_size = size.small)
+    table.cell(dash, 0, 2, "Score", text_color = cInk, text_size = size.small)
     table.cell(dash, 1, 2, str.tostring(score) + " / 10", text_color = scoreCol, text_size = size.small)
-    table.cell(dash, 0, 3, "HTF " + htf, text_color = color.new(#d8d4c8, 20), text_size = size.small)
+    table.cell(dash, 0, 3, "HTF " + htf, text_color = cInk, text_size = size.small)
     table.cell(dash, 1, 3, htfBull ? "BULL" : htfBear ? "BEAR" : "NEUTRAL", text_color = htfCol, text_size = size.small)
-    table.cell(dash, 0, 4, "Ribbon", text_color = color.new(#d8d4c8, 20), text_size = size.small)
+    table.cell(dash, 0, 4, "Ribbon", text_color = cInk, text_size = size.small)
     table.cell(dash, 1, 4, vSlow > 0 ? "SLOW UP" : "SLOW DN", text_color = vSlow > 0 ? cTeal : cRose, text_size = size.small)
-    table.cell(dash, 0, 5, "ST stack", text_color = color.new(#d8d4c8, 20), text_size = size.small)
+    table.cell(dash, 0, 5, "ST stack", text_color = cInk, text_size = size.small)
     table.cell(dash, 1, 5, str.tostring(stBullCount) + "/3 up", text_color = stMajorityUp ? cTeal : cRose, text_size = size.small)
-    table.cell(dash, 0, 6, "Rel vol", text_color = color.new(#d8d4c8, 20), text_size = size.small)
+    table.cell(dash, 0, 6, "Rel vol", text_color = cInk, text_size = size.small)
     table.cell(dash, 1, 6, str.tostring(relVol, "#.00") + "x", text_color = volOk ? cTeal : cRose, text_size = size.small)
-    table.cell(dash, 0, 7, "WT bias", text_color = color.new(#d8d4c8, 20), text_size = size.small)
+    table.cell(dash, 0, 7, "WT bias", text_color = cInk, text_size = size.small)
     table.cell(dash, 1, 7, wt1 > wt2 ? "WT+" : "WT-", text_color = wt1 > wt2 ? cTeal : cRose, text_size = size.small)
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 12. Alerts — fire once per confirmed close
-// ─────────────────────────────────────────────────────────────────────────────
-alertcondition(impulseLong, "Kairos Tape Impulse Long", "Impulse long — score, trigger, regime, volume, HTF aligned")
-alertcondition(impulseShort, "Kairos Tape Impulse Short", "Impulse short — score, trigger, regime, volume, HTF aligned")
-alertcondition(fadeLong, "Kairos Tape Exhaustion Long", "CCI rolling over from exhaustion while slow tape is still up — take-profit / trim")
-alertcondition(fadeShort, "Kairos Tape Exhaustion Short", "CCI rolling up from exhaustion while slow tape is still down")
-alertcondition(stEnvUp, "Kairos Tape ST environment up", "SuperTrend stack flipped constructive")
-alertcondition(stEnvDn, "Kairos Tape ST environment down", "SuperTrend stack flipped destructive")
-alertcondition(largeSwing, "Kairos Tape large swing", "Confirmed large structure pivot")
-alertcondition(SUPERLONG and showLegacy, "Legacy SuperLong", "Original W2T SuperLong (fixed % MACD)")
-alertcondition(SHORT100 and showLegacy, "Legacy Short100", "Original W2T Short100 (fixed % MACD)")
+alertcondition(impulseLong,  "Kairos Tape Impulse Long",  "Impulse long")
+alertcondition(impulseShort, "Kairos Tape Impulse Short", "Impulse short")
+alertcondition(fadeLong,     "Kairos Tape Exhaustion Long",  "CCI rolling over")
+alertcondition(fadeShort,    "Kairos Tape Exhaustion Short", "CCI rolling up")
+alertcondition(stEnvUp,      "Kairos Tape ST env up",   "SuperTrend constructive")
+alertcondition(stEnvDn,      "Kairos Tape ST env down", "SuperTrend destructive")
+alertcondition(largeSwing,   "Kairos Tape large swing", "Confirmed large pivot")
 
 if impulseLong
-    alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | regime " + regime, alert.freq_once_per_bar_close)
+    alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
 if impulseShort
-    alert("KAIROS TAPE impulse SHORT | score " + str.tostring(score) + " | regime " + regime, alert.freq_once_per_bar_close)
+    alert("KAIROS TAPE impulse SHORT | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
