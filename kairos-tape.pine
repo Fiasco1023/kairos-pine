@@ -112,6 +112,7 @@ f_tema(float src, int len) =>
 float tema1 = f_tema(close, 25)
 float tema2 = f_tema(close, 34)
 float tema3 = f_tema(close, 50)
+float tema4 = f_tema(close, 100)
 
 float hull2 = ta.hma(close, 2)
 float hull80 = ta.hma(close, 80)
@@ -183,30 +184,35 @@ bool fadeShort = gated and cci < -cciExt and ta.crossover(cci, -cciExt) and vSlo
 bool stEnvUp = gated and ta.crossunder(st3, st1) and stMajorityUp and close > open
 bool stEnvDn = gated and ta.crossover(st3, st1) and stMajorityDn and close < open
 
-// SUPERLONG — original W2T recipe (the unique edge). Kept as a first-class mark.
-// Original compared MACD to 0.0002 (BTC-price-scale only). That is now %MACD
-// crossing zero so it fires on ETH/alts. Other legs are unchanged:
-//   MA3 > MA6
-//   HMA(80) > MA6
-//   HMA(2)  > MA6
-//   HMA(80) > MA3
-//   CCI > 0
-//   TEMA25 > TEMA34 > TEMA50
-bool showSuperLong = input.bool(true, "Show SUPERLONG", group = "9. SuperLong")
+// SUPERLONG — exact W2T recipe (lime "L").
+// Original: emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2
+//           and ta.crossover(macd, 0.0002) and ccibuy and temabuy and temabuy2
+// temabuy2 is TEMA50 > TEMA100 (NOT 34>50 — that swap is why HYPE daily went quiet).
+// macd>0.0002 was BTC-scale; on HYPE/ETH that is the same bar as macd crossing 0.
+bool showSuperLong = input.bool(true, "Show SUPERLONG", group = "9. W2T recipes")
 bool emabuy3 = MA3 > MA6
 bool hmaaboveema5 = hull80 > MA6
 bool hmaaboveema = hull2 > MA6
 bool hmaaboveema2 = hull80 > MA3
 bool ccibuy = cci > 0
 bool temabuy = tema1 > tema2
-bool temabuy3 = tema2 > tema3
-bool SUPERLONG = gated and emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2 and ta.crossover(macdPct, 0) and ccibuy and temabuy and temabuy3
+bool temabuy2 = tema3 > tema4
+bool SUPERLONG = emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2 and ta.crossover(macd, 0) and ccibuy and temabuy and temabuy2
 
-// SHORT100 — original W2T short counterpart, %MACD instead of 0.0002
-bool showShort100 = input.bool(true, "Show SHORT100", group = "9. SuperLong")
+// STLong — the other lime/purple "L" you saw on HYPE daily (original size.small purple).
+// Original: STBUY and CCI cross 0 and TFccibuy and hmabuy and HMA>ST1/2/3 and BullCandle
+// TFccibuy in W2T accidentally used current-TF CCI (same as ccibuy).
+// STBUY (custom HTF ST vs its HMA) is represented here as SuperTrend majority up.
+bool showSTLong = input.bool(true, "Show STLong", group = "9. W2T recipes")
+bool hmabuy = hullFast > hullSlow
+bool hmasupertrendbuy = hullFast > st3 and hullFast > st1 and hullFast > st2
+bool STLong = stMajorityUp and ta.crossover(cci, 0) and hmabuy and hmasupertrendbuy and close > open
+
+// SHORT100 — original short counterpart
+bool showShort100 = input.bool(true, "Show SHORT100", group = "9. W2T recipes")
 bool hmasupertrendsell = hullFast < st3 and hullFast < st1 and hullFast < st2
 bool hmabeloweema = hullSlow < MA6
-bool SHORT100 = gated and ta.crossunder(macdPct, 0) and hmasupertrendsell and hmabeloweema and close < open
+bool SHORT100 = ta.crossunder(macd, 0) and hmasupertrendsell and hmabeloweema and close < open
 
 plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
 
@@ -234,8 +240,9 @@ plotshape(fadeLong,     title = "Exhaustion L",  style = shape.diamond,      loc
 plotshape(fadeShort,    title = "Exhaustion S",  style = shape.diamond,      location = location.belowbar, color = cCopper, size = size.tiny,  text = "EX")
 plotshape(stEnvUp,      title = "ST env up",     style = shape.xcross,       location = location.belowbar, color = cSlate,  size = size.tiny)
 plotshape(stEnvDn,      title = "ST env down",   style = shape.xcross,       location = location.abovebar, color = cRose,   size = size.tiny)
-plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #5cff7a, size = size.small, text = "SL", textcolor = color.white)
-plotshape(showShort100 and SHORT100, title = "SHORT100", style = shape.triangledown, location = location.abovebar, color = #ffbcc7, size = size.small, text = "S")
+plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
+plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
+plotshape(showShort100 and SHORT100, title = "SHORT100", style = shape.triangledown, location = location.abovebar, color = #ffbcc7, size = size.tiny, text = "S")
 
 var table dash = table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
 
@@ -267,14 +274,17 @@ alertcondition(fadeShort,    "Kairos Tape Exhaustion Short", "CCI rolling up")
 alertcondition(stEnvUp,      "Kairos Tape ST env up",   "SuperTrend constructive")
 alertcondition(stEnvDn,      "Kairos Tape ST env down", "SuperTrend destructive")
 alertcondition(largeSwing,   "Kairos Tape large swing", "Confirmed large pivot")
-alertcondition(SUPERLONG,    "Kairos Tape SUPERLONG", "Original W2T SuperLong (percent MACD)")
-alertcondition(SHORT100,     "Kairos Tape SHORT100",  "Original W2T Short100 (percent MACD)")
+alertcondition(SUPERLONG,    "Kairos Tape SUPERLONG", "W2T SuperLong: MACD cross 0 + TEMA50>100 + HMA/EMA stack")
+alertcondition(STLong,       "Kairos Tape STLong",    "W2T STLong: CCI cross 0 + HMA above SuperTrend stack")
+alertcondition(SHORT100,     "Kairos Tape SHORT100",  "W2T Short100")
 
 if impulseLong
     alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
 if impulseShort
     alert("KAIROS TAPE impulse SHORT | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
 if SUPERLONG
-    alert("KAIROS TAPE SUPERLONG | %MACD cross up | CCI+ | TEMA stack | HMA above slow tape", alert.freq_once_per_bar_close)
+    alert("KAIROS TAPE SUPERLONG | MACD cross 0 | TEMA50>100 | HMA above slow tape", alert.freq_once_per_bar_close)
+if STLong
+    alert("KAIROS TAPE STLong | CCI cross 0 | HMA above ST stack", alert.freq_once_per_bar_close)
 if SHORT100
-    alert("KAIROS TAPE SHORT100 | %MACD cross down | HMA below ST stack", alert.freq_once_per_bar_close)
+    alert("KAIROS TAPE SHORT100 | MACD cross down | HMA below ST stack", alert.freq_once_per_bar_close)
