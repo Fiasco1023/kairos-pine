@@ -168,11 +168,14 @@ int vTema = tema1 > tema2 and tema2 > tema3 ? 1 : tema1 < tema2 and tema2 < tema
 int vWt   = wt1 > wt2 ? 1 : wt1 < wt2 ? -1 : 0
 int score = vFast + vMid + vSlow + vPx + vST + vHma + vCci + vMacd + vTema + vWt
 
-// Hidden Wave blend (RSI+CCI+Stoch+MFI) - same default as Kairos Wave. Not a second pane.
-float rsiN = ta.rsi(close, 14) * 4.0 - 200.0
-float stoN = ta.sma(ta.stoch(close, high, low, 14), 3) * 4.0 - 200.0
-float mfiN = (ta.mfi(hlc3, 60) - 50.0) * 4.0
-float waveBlend = (nz(rsiN) + nz(math.max(-200.0, math.min(200.0, cci))) + nz(stoN) + nz(mfiN)) / 4.0
+// Hidden Wave blend - replica of Kairos Wave DEFAULT legs (RSI+CCI hlc3+Stoch+MFI).
+// Must match the Wave pane or INV will not line up with BEAR labels.
+float wRsi = math.max(-200.0, math.min(200.0, ta.rsi(close, 14) * 4.0 - 200.0))
+float wCci = math.max(-200.0, math.min(200.0, ta.cci(hlc3, 50)))
+float wSto = math.max(-200.0, math.min(200.0, ta.sma(ta.stoch(close, high, low, 14), 3) * 4.0 - 200.0))
+float wMfi = math.max(-200.0, math.min(200.0, (ta.mfi(hlc3, 60) - 50.0) * 4.0))
+int wN = (na(wRsi) ? 0 : 1) + (na(wCci) ? 0 : 1) + (na(wSto) ? 0 : 1) + (na(wMfi) ? 0 : 1)
+float waveBlend = wN == 0 ? 0.0 : ((na(wRsi) ? 0.0 : wRsi) + (na(wCci) ? 0.0 : wCci) + (na(wSto) ? 0.0 : wSto) + (na(wMfi) ? 0.0 : wMfi)) / wN
 float waveMA = ta.ema(waveBlend, 14)
 bool waveUp = waveBlend > waveMA
 
@@ -213,15 +216,15 @@ bool hmabuy = hullFast > hullSlow
 bool hmasupertrendbuy = hullFast > st3 and hullFast > st1 and hullFast > st2
 bool STLong_RAW = stMajorityUp and ta.crossover(cci, 0) and hmabuy and hmasupertrendbuy and close > open
 
-// Invalidation: regular bearish divergence on the Wave blend (RSI+CCI+Stoch+MFI).
-// BTC daily case: Tape prints STLong / SUPERLONG while Wave already has a BEAR label - skip.
-// Sticky until a bull div prints or price breaks the pivot high (failed divergence).
+// Invalidation: regular bearish divergence on the Wave blend (price HH + blend LH).
+// Prints INV at the SAME pivot Wave labels BEAR (offset left by pivot-right).
+// Sticky: kills K / STLong / SUPERLONG / IN until a regular bull div or a CLOSE above the pivot high.
 bool killOnBearDiv = input.bool(true, "Kill longs on Wave bear div", group = "11. Invalidation")
 int invLeft = input.int(5, "Div pivot left", minval = 1, group = "11. Invalidation")
 int invRight = input.int(5, "Div pivot right", minval = 1, group = "11. Invalidation")
 int invMax = input.int(60, "Div max lookback", minval = 5, group = "11. Invalidation")
 int invMin = input.int(5, "Div min lookback", minval = 1, group = "11. Invalidation")
-bool showInv = input.bool(true, "Mark invalidated longs (INV)", group = "11. Invalidation")
+bool showInv = input.bool(true, "Mark Wave BEAR as INV on Tape", group = "11. Invalidation")
 
 _inRangeInv(bool cond) =>
     int bars = ta.barssince(cond)
@@ -241,10 +244,10 @@ var float bearDivCap = na
 if bearDiv
     bearDivActive := true
     bearDivCap := high[invRight]
-if bullDiv
+else if bullDiv
     bearDivActive := false
     bearDivCap := na
-if bearDivActive and not na(bearDivCap) and high > bearDivCap
+else if bearDivActive and not na(bearDivCap) and close > bearDivCap
     bearDivActive := false
     bearDivCap := na
 
@@ -262,7 +265,8 @@ bool kRequireWave = input.bool(false, "Require Wave blend teal", group = "10. Co
 bool kRequireST = input.bool(false, "Require SuperTrend majority up", group = "10. Combined")
 bool kairosRaw = ta.crossover(cci, 0) and close > open and (not kRequireFast or vFast == 1) and (not kRequireMid or vMid == 1) and (not kRequirePx or close > MA6) and (not kRequireWave or waveUp) and (not kRequireST or stMajorityUp)
 bool kairosLong = kairosRaw and not invKill
-bool kairosInv = showInv and (impulseLongRaw or SUPERLONG_RAW or STLong_RAW or kairosRaw) and invKill
+bool anyLongRaw = impulseLongRaw or SUPERLONG_RAW or STLong_RAW or kairosRaw
+bool skippedLong = showInv and invKill and anyLongRaw
 
 plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
 
@@ -292,7 +296,13 @@ plotshape(showStEnv and stEnvDn,      title = "ST env down",   style = shape.xcr
 plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
 plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
 plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = cCopper, size = size.normal, text = "K", textcolor = color.white)
-plotshape(kairosInv, title = "Invalidated long", style = shape.xcross, location = location.abovebar, color = cRose, size = size.small, text = "INV")
+// INV sits on the SAME candle Wave labels BEAR (pivot, 5 bars back).
+plotshape(showInv and bearDiv, title = "Wave BEAR invalidation", style = shape.xcross, location = location.abovebar, color = cRose, size = size.small, text = "INV", textcolor = color.white, offset = -invRight)
+// X marks a Tape long that was skipped because a Wave BEAR is still live.
+plotshape(skippedLong, title = "Skipped long", style = shape.xcross, location = location.abovebar, color = cRose, size = size.tiny, text = "X")
+
+if showInv and bearDiv
+    label.new(bar_index[invRight], high[invRight], "INV", style = label.style_label_down, color = cRose, textcolor = color.white, size = size.small)
 
 var table dash = table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
 
@@ -324,8 +334,8 @@ alertcondition(largeSwing,   "Kairos Tape large swing", "Confirmed large pivot")
 alertcondition(SUPERLONG,    "Kairos Tape SUPERLONG", "W2T SuperLong: MACD cross 0 + TEMA50>100 + HMA/EMA stack")
 alertcondition(STLong,       "Kairos Tape STLong",    "W2T STLong: CCI cross 0 + HMA above SuperTrend stack")
 alertcondition(kairosLong,   "Kairos combined long",  "CCI cross 0 + bullish fast/mid cloud + price > slow EMA")
-alertcondition(kairosInv,    "Kairos long invalidated", "Tape long killed by Wave bearish divergence")
-alertcondition(bearDiv,      "Kairos Wave bear div (on Tape)", "Regular bearish divergence on the composite")
+alertcondition(bearDiv,      "Kairos Wave bear div INV", "Regular bearish divergence - Tape longs killed until bull div or close above pivot high")
+alertcondition(skippedLong,  "Kairos long skipped", "Tape long skipped because Wave bear div is live")
 
 if impulseLong
     alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
@@ -335,5 +345,7 @@ if STLong
     alert("KAIROS TAPE STLong | CCI cross 0 | HMA above ST stack", alert.freq_once_per_bar_close)
 if kairosLong
     alert("KAIROS LONG | CCI cross 0 | fast/mid cloud UP | px > slow EMA | score " + str.tostring(score), alert.freq_once_per_bar_close)
-if kairosInv
-    alert("KAIROS INVALIDATED | Wave bear div active - skipped long", alert.freq_once_per_bar_close)
+if bearDiv
+    alert("KAIROS INV | Wave BEAR div confirmed - skip Tape longs until bull div or close above pivot high", alert.freq_once_per_bar_close)
+if skippedLong
+    alert("KAIROS SKIPPED | Wave bear div live - long trigger ignored", alert.freq_once_per_bar_close)
