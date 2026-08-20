@@ -168,14 +168,21 @@ int vTema = tema1 > tema2 and tema2 > tema3 ? 1 : tema1 < tema2 and tema2 < tema
 int vWt   = wt1 > wt2 ? 1 : wt1 < wt2 ? -1 : 0
 int score = vFast + vMid + vSlow + vPx + vST + vHma + vCci + vMacd + vTema + vWt
 
-// Hidden Wave blend - replica of Kairos Wave DEFAULT legs (RSI+CCI hlc3+Stoch+MFI).
-// Must match the Wave pane or INV will not line up with BEAR labels.
+// Hidden Wave blend - must match the Wave pane preset or INV will not line up with BEAR.
+string waveReplica = input.string("Research (CCI+WT)", "Wave blend replica", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5"], group = "11. Invalidation")
 float wRsi = math.max(-200.0, math.min(200.0, ta.rsi(close, 14) * 4.0 - 200.0))
 float wCci = math.max(-200.0, math.min(200.0, ta.cci(hlc3, 50)))
 float wSto = math.max(-200.0, math.min(200.0, ta.sma(ta.stoch(close, high, low, 14), 3) * 4.0 - 200.0))
+float wWt  = math.max(-200.0, math.min(200.0, wt1 * 2.0))
 float wMfi = math.max(-200.0, math.min(200.0, (ta.mfi(hlc3, 60) - 50.0) * 4.0))
-int wN = (na(wRsi) ? 0 : 1) + (na(wCci) ? 0 : 1) + (na(wSto) ? 0 : 1) + (na(wMfi) ? 0 : 1)
-float waveBlend = wN == 0 ? 0.0 : ((na(wRsi) ? 0.0 : wRsi) + (na(wCci) ? 0.0 : wCci) + (na(wSto) ? 0.0 : wSto) + (na(wMfi) ? 0.0 : wMfi)) / wN
+bool rRsi = waveReplica != "Research (CCI+WT)"
+bool rCci = true
+bool rSto = waveReplica != "Research (CCI+WT)"
+bool rWt  = waveReplica != "HYPE (RSI+CCI+Stoch+MFI)"
+bool rMfi = waveReplica != "Research (CCI+WT)"
+int wN = (rRsi and not na(wRsi) ? 1 : 0) + (rCci and not na(wCci) ? 1 : 0) + (rSto and not na(wSto) ? 1 : 0) + (rWt and not na(wWt) ? 1 : 0) + (rMfi and not na(wMfi) ? 1 : 0)
+float wAcc = (rRsi and not na(wRsi) ? wRsi : 0.0) + (rCci and not na(wCci) ? wCci : 0.0) + (rSto and not na(wSto) ? wSto : 0.0) + (rWt and not na(wWt) ? wWt : 0.0) + (rMfi and not na(wMfi) ? wMfi : 0.0)
+float waveBlend = wN == 0 ? 0.0 : wAcc / wN
 float waveMA = ta.ema(waveBlend, 14)
 bool waveUp = waveBlend > waveMA
 
