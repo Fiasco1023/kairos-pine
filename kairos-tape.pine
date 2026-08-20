@@ -169,6 +169,10 @@ int score = vFast + vMid + vSlow + vPx + vST + vHma + vCci + vMacd + vTema + vWt
 
 int longThresh  = input.int(6, "Impulse long score >=", minval = 1, maxval = 10, group = "8. Signals")
 int shortThresh = input.int(-6, "Impulse short score <=", maxval = -1, minval = -10, group = "8. Signals")
+bool showImpulseLong = input.bool(true, "Impulse long (IN)", group = "8. Signals")
+bool showImpulseShort = input.bool(false, "Impulse short (IN)", group = "8. Signals")
+bool showExhaustion = input.bool(false, "Exhaustion diamonds", group = "8. Signals")
+bool showStEnv = input.bool(false, "ST env X", group = "8. Signals")
 
 bool gated = not confirmOnClose or barstate.isconfirmed
 bool trigLong  = ta.crossover(cci, 0) or ta.crossover(hullFast, hullSlow) or stFlipUp or ta.crossover(macdPct, 0)
@@ -234,12 +238,12 @@ fill(bodyMid, dn3, showST ? color.new(cRose, 88) : na, title = "ST dn")
 
 barcolor(cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
 
-plotshape(impulseLong,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = cTeal,   size = size.small, text = "IN", textcolor = color.white)
-plotshape(impulseShort, title = "Impulse Short", style = shape.triangledown, location = location.abovebar, color = cRose,   size = size.small, text = "IN", textcolor = color.white)
-plotshape(fadeLong,     title = "Exhaustion L",  style = shape.diamond,      location = location.abovebar, color = cCopper, size = size.tiny,  text = "EX")
-plotshape(fadeShort,    title = "Exhaustion S",  style = shape.diamond,      location = location.belowbar, color = cCopper, size = size.tiny,  text = "EX")
-plotshape(stEnvUp,      title = "ST env up",     style = shape.xcross,       location = location.belowbar, color = cSlate,  size = size.tiny)
-plotshape(stEnvDn,      title = "ST env down",   style = shape.xcross,       location = location.abovebar, color = cRose,   size = size.tiny)
+plotshape(showImpulseLong and impulseLong,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = cTeal,   size = size.small, text = "IN", textcolor = color.white)
+plotshape(showImpulseShort and impulseShort, title = "Impulse Short", style = shape.triangledown, location = location.abovebar, color = cRose,   size = size.small, text = "IN", textcolor = color.white)
+plotshape(showExhaustion and fadeLong,     title = "Exhaustion L",  style = shape.diamond,      location = location.abovebar, color = cCopper, size = size.tiny,  text = "EX")
+plotshape(showExhaustion and fadeShort,    title = "Exhaustion S",  style = shape.diamond,      location = location.belowbar, color = cCopper, size = size.tiny,  text = "EX")
+plotshape(showStEnv and stEnvUp,      title = "ST env up",     style = shape.xcross,       location = location.belowbar, color = cSlate,  size = size.tiny)
+plotshape(showStEnv and stEnvDn,      title = "ST env down",   style = shape.xcross,       location = location.abovebar, color = cRose,   size = size.tiny)
 plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
 plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
 plotshape(showShort100 and SHORT100, title = "SHORT100", style = shape.triangledown, location = location.abovebar, color = #ffbcc7, size = size.tiny, text = "S")

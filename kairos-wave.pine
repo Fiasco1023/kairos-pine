@@ -19,7 +19,7 @@ bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Show")
 bool useRsi  = input.bool(true, "RSI", group = "Legs in the blend", inline = "a")
 bool useCci  = input.bool(true, "CCI", group = "Legs in the blend", inline = "a")
 bool useSto  = input.bool(true, "Stoch", group = "Legs in the blend", inline = "a")
-bool useWt   = input.bool(true, "WaveTrend", group = "Legs in the blend", inline = "b")
+bool useWt   = input.bool(false, "WaveTrend", group = "Legs in the blend", inline = "b")
 bool useMfi  = input.bool(true, "MFI", group = "Legs in the blend", inline = "b")
 bool useVwap = input.bool(false, "VWAP dist", group = "Legs in the blend", inline = "b")
 
