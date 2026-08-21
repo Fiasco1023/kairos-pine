@@ -277,7 +277,13 @@ bool STLong_RAW = stMajorityUp and ta.crossover(cci, 0) and hmabuy and hmasupert
 // Prints INV at the SAME pivot Wave labels BEAR (offset left by pivot-right).
 // Sticky: kills K / STLong / SUPERLONG / IN until a regular bull div or a CLOSE above the pivot high.
 bool killOnBearDiv = input.bool(true, "Kill longs on Wave BEAR", group = "Filters")
-bool skipWaveRose = input.bool(true, "Skip while Wave rose", group = "Filters")
+bool skipWaveRose = input.bool(true, "Skip while Wave rose", group = "Filters", inline = "sk")
+bool requireCmf = input.bool(false, "Require CMF > 0", group = "Filters", inline = "sk", tooltip = "Chaikin Money Flow 20. Off by default. Matrix: same K/ST longs, hit 50%→54% and PF 3.0→3.5 when on.")
+int cmfLen = input.int(20, "CMF length", minval = 1, group = "Advanced")
+float cmfRange = high - low
+float mfm = cmfRange == 0 ? 0.0 : ((close - low) - (high - close)) / cmfRange
+float cmf = ta.sma(volume, cmfLen) == 0 ? 0.0 : ta.sma(mfm * volume, cmfLen) / ta.sma(volume, cmfLen)
+bool cmfPos = cmf > 0
 int invLeft = input.int(5, "Div left", minval = 1, group = "Advanced", inline = "dv")
 int invRight = input.int(5, "right", minval = 1, group = "Advanced", inline = "dv")
 int invMax = input.int(60, "Div max", minval = 5, group = "Advanced", inline = "dv2")
@@ -309,7 +315,7 @@ else if bearDivActive and not na(bearDivCap) and close > bearDivCap
     bearDivActive := false
     bearDivCap := na
 
-bool invKill = (killOnBearDiv and bearDivActive) or (skipWaveRose and not waveUp)
+bool invKill = (killOnBearDiv and bearDivActive) or (skipWaveRose and not waveUp) or (requireCmf and not cmfPos)
 bool impulseLong = impulseLongRaw and not invKill
 bool SUPERLONG = SUPERLONG_RAW and not invKill
 bool STLong = STLong_RAW and not invKill
