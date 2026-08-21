@@ -1,5 +1,5 @@
 // Kairos Tape v6 - overlay. Pair with Kairos Wave (separate pane). Do not merge.
-// Long-only. Wave regular bear-div (price HH + blend LH) prints INV and kills K / STLong / SUPERLONG / IN.
+// Long-only. Wave regular bear-div kills K / STLong / SUPERLONG / IN. No INV labels on chart.
 //@version=6
 indicator("Kairos Tape", shorttitle = "KRS Tape", overlay = true, max_labels_count = 500, max_lines_count = 50)
 
@@ -18,7 +18,7 @@ color cSlowDn = #9b5de5
 
 string profile = input.string("Intraday", "Profile", options = ["Scalp", "Intraday", "Swing", "Custom"], group = "0. Profile")
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "0. Profile")
-bool showDash = input.bool(true, "Show dashboard", group = "0. Profile")
+bool showDash = input.bool(false, "Show dashboard table (top right)", group = "0. Profile")
 
 int in1 = input.int(14, "Len 1", minval = 1, group = "1. Ribbon", inline = "L")
 int in2 = input.int(21, "Len 2", minval = 1, group = "1. Ribbon", inline = "L")
@@ -266,8 +266,7 @@ int invLeft = input.int(5, "Div pivot left", minval = 1, group = "11. Invalidati
 int invRight = input.int(5, "Div pivot right", minval = 1, group = "11. Invalidation")
 int invMax = input.int(60, "Div max lookback", minval = 5, group = "11. Invalidation")
 int invMin = input.int(5, "Div min lookback", minval = 1, group = "11. Invalidation")
-bool showInv = input.bool(true, "Mark Wave BEAR as INV on Tape", group = "11. Invalidation")
-int stampBars = input.int(20, "L-INV lookback (bars)", minval = 1, maxval = 100, group = "11. Invalidation")
+bool shadeInv = input.bool(true, "Shade bars while Wave INV is live", group = "11. Invalidation")
 
 _inRangeInv(bool cond) =>
     int bars = ta.barssince(cond)
@@ -309,7 +308,7 @@ bool kRequireST = input.bool(false, "Require SuperTrend majority up", group = "1
 bool kairosRaw = ta.crossover(cci, 0) and close > open and (not kRequireFast or vFast == 1) and (not kRequireMid or vMid == 1) and (not kRequirePx or close > MA6) and (not kRequireWave or waveUp) and (not kRequireST or stMajorityUp)
 bool kairosLong = kairosRaw and not invKill
 bool anyLongRaw = impulseLongRaw or SUPERLONG_RAW or STLong_RAW or kairosRaw
-bool skippedLong = showInv and invKill and anyLongRaw
+bool skippedLong = invKill and anyLongRaw
 
 plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
 
@@ -345,45 +344,36 @@ plotshape(showCipherA and showCaWarn and caRedCross, title = "CA red X", style =
 plotshape(showCipherA and showCaWarn and caRedDiamond and not caBlood and not caYellowX, title = "CA red diamond", style = shape.diamond, location = location.abovebar, color = #ff2d6a, size = size.tiny)
 plotshape(showCipherA and showCaWarn and caYellowX, title = "CA yellow X", style = shape.xcross, location = location.abovebar, color = #ffe500, size = size.small)
 plotshape(showCipherA and showCaWarn and caBlood, title = "CA blood diamond", style = shape.diamond, location = location.abovebar, color = #ff003c, size = size.small)
-// INV sits on the SAME candle Wave labels BEAR (pivot, 5 bars back).
-plotshape(showInv and bearDiv, title = "Wave BEAR invalidation", style = shape.xcross, location = location.abovebar, color = cRose, size = size.small, text = "INV", textcolor = color.white, offset = -invRight)
-// L-INV on a live long that tried to print after the BEAR is already active.
-plotshape(skippedLong, title = "L-INV skipped", style = shape.xcross, location = location.abovebar, color = cRose, size = size.small, text = "L-INV")
 
-// After Wave BEAR confirms, stamp any Tape L / IN / K in the last stampBars as invalidated.
-// Pine cannot un-print the original triangle; this tags it after the fact.
-if showInv and bearDiv
-    label.new(bar_index[invRight], high[invRight], "INV", style = label.style_label_down, color = cRose, textcolor = color.white, size = size.small)
-    for i = 0 to stampBars
-        bool wasL  = SUPERLONG_RAW[i] or STLong_RAW[i]
-        bool wasIN = impulseLongRaw[i]
-        bool wasK  = kairosRaw[i]
-        if wasL or wasIN or wasK
-            string tag = wasL ? "L-INV" : wasK ? "K-INV" : "IN-INV"
-            label.new(bar_index[i], low[i], tag, xloc = xloc.bar_index, style = label.style_label_up, color = cRose, textcolor = color.white, size = size.small)
+bgcolor(shadeInv and bearDivActive ? color.new(cRose, 90) : na, title = "Wave INV live")
 
-var table dash = table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
-
-if showDash and barstate.islast
-    color regimeCol = regime == "TREND" ? cTeal : regime == "CHOP" ? cRose : cCopper
-    color scoreCol = score >= longThresh ? cTeal : score <= -6 ? cRose : cInk
-    color htfCol = htfBull ? cTeal : htfBear ? cRose : cInk
-    table.cell(dash, 0, 0, "KAIROS TAPE", text_color = cCopper, text_size = size.small)
-    table.cell(dash, 1, 0, profile, text_color = cCopper, text_size = size.small)
-    table.cell(dash, 0, 1, "Regime", text_color = cInk, text_size = size.small)
-    table.cell(dash, 1, 1, regime, text_color = regimeCol, text_size = size.small)
-    table.cell(dash, 0, 2, "Score", text_color = cInk, text_size = size.small)
-    table.cell(dash, 1, 2, str.tostring(score) + " / 10", text_color = scoreCol, text_size = size.small)
-    table.cell(dash, 0, 3, "HTF " + htf, text_color = cInk, text_size = size.small)
-    table.cell(dash, 1, 3, htfBull ? "BULL" : htfBear ? "BEAR" : "NEUTRAL", text_color = htfCol, text_size = size.small)
-    table.cell(dash, 0, 4, "Ribbon", text_color = cInk, text_size = size.small)
-    table.cell(dash, 1, 4, vSlow > 0 ? "SLOW UP" : "SLOW DN", text_color = vSlow > 0 ? cTeal : cRose, text_size = size.small)
-    table.cell(dash, 0, 5, "ST stack", text_color = cInk, text_size = size.small)
-    table.cell(dash, 1, 5, str.tostring(stBullCount) + "/3 up", text_color = stMajorityUp ? cTeal : cRose, text_size = size.small)
-    table.cell(dash, 0, 6, "Rel vol", text_color = cInk, text_size = size.small)
-    table.cell(dash, 1, 6, str.tostring(relVol, "#.00") + "x", text_color = volOk ? cTeal : cRose, text_size = size.small)
-    table.cell(dash, 0, 7, "Wave INV", text_color = cInk, text_size = size.small)
-    table.cell(dash, 1, 7, bearDivActive ? "LIVE - skip" : "clear", text_color = bearDivActive ? cRose : cTeal, text_size = size.small)
+var table dash = na
+if barstate.islast
+    if showDash
+        if na(dash)
+            dash := table.new(position.top_right, 2, 8, bgcolor = color.new(#141821, 18), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
+        color regimeCol = regime == "TREND" ? cTeal : regime == "CHOP" ? cRose : cCopper
+        color scoreCol = score >= longThresh ? cTeal : score <= -6 ? cRose : cInk
+        color htfCol = htfBull ? cTeal : htfBear ? cRose : cInk
+        table.cell(dash, 0, 0, "KAIROS TAPE", text_color = cCopper, text_size = size.small)
+        table.cell(dash, 1, 0, profile, text_color = cCopper, text_size = size.small)
+        table.cell(dash, 0, 1, "Regime", text_color = cInk, text_size = size.small)
+        table.cell(dash, 1, 1, regime, text_color = regimeCol, text_size = size.small)
+        table.cell(dash, 0, 2, "Score", text_color = cInk, text_size = size.small)
+        table.cell(dash, 1, 2, str.tostring(score) + " / 10", text_color = scoreCol, text_size = size.small)
+        table.cell(dash, 0, 3, "HTF " + htf, text_color = cInk, text_size = size.small)
+        table.cell(dash, 1, 3, htfBull ? "BULL" : htfBear ? "BEAR" : "NEUTRAL", text_color = htfCol, text_size = size.small)
+        table.cell(dash, 0, 4, "Ribbon", text_color = cInk, text_size = size.small)
+        table.cell(dash, 1, 4, vSlow > 0 ? "SLOW UP" : "SLOW DN", text_color = vSlow > 0 ? cTeal : cRose, text_size = size.small)
+        table.cell(dash, 0, 5, "ST stack", text_color = cInk, text_size = size.small)
+        table.cell(dash, 1, 5, str.tostring(stBullCount) + "/3 up", text_color = stMajorityUp ? cTeal : cRose, text_size = size.small)
+        table.cell(dash, 0, 6, "Rel vol", text_color = cInk, text_size = size.small)
+        table.cell(dash, 1, 6, str.tostring(relVol, "#.00") + "x", text_color = volOk ? cTeal : cRose, text_size = size.small)
+        table.cell(dash, 0, 7, "Wave INV", text_color = cInk, text_size = size.small)
+        table.cell(dash, 1, 7, bearDivActive ? "LIVE - skip" : "clear", text_color = bearDivActive ? cRose : cTeal, text_size = size.small)
+    else if not na(dash)
+        table.delete(dash)
+        dash := na
 
 alertcondition(impulseLong,  "Kairos Tape Impulse Long",  "Impulse long")
 alertcondition(fadeLong,     "Kairos Tape Exhaustion Long",  "CCI rolling over")
