@@ -1,5 +1,5 @@
 // Kairos Wave v6 - pane oscillator. Pair with Kairos Tape. Do not merge.
-// Composite on: one blend (default CCI + WaveTrend VMC 9/12/3).
+// Composite on: one blend (default RSI 60 / WT 40 — weighted matrix winner).
 // Composite off: each checked oscillator plots as itself, with its own MA and divergences.
 // Green dots = VMC Cipher B buy (WT1 x WT2 while WT2 <= -53). No short dots.
 //@version=6
