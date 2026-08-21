@@ -103,6 +103,13 @@ if showMedium and not na(mdHi)
 if showMedium and not na(mdLo)
     label.new(bar_index - mdRight, mdLo, "", xloc = xloc.bar_index, color = cTeal, style = label.style_circle, size = size.tiny)
 
+var float lastSwingH = na
+var float lastSwingL = na
+if not na(mdHi)
+    lastSwingH := mdHi
+if not na(mdLo)
+    lastSwingL := mdLo
+
 bool largeSwing = showLarge and (not na(lgHi) or not na(lgLo))
 
 int hmaFastLen = input.int(6, "HMA fast", minval = 1, group = "Advanced")
@@ -192,6 +199,8 @@ int score = vFast + vMid + vSlow + vPx + vST + vHma + vCci + vMacd + vTema + vWt
 
 // Hidden Wave blend - must match the Wave pane preset or INV will not line up with BEAR.
 string waveReplica = input.string("Research (CCI+WT)", "Wave blend replica", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5"], group = "Advanced")
+float rwCci = input.float(20.0, "Replica CCI wt", minval = 0, step = 5, group = "Advanced", inline = "rw")
+float rwWt = input.float(80.0, "Replica WT wt", minval = 0, step = 5, group = "Advanced", inline = "rw")
 float wRsi = (ta.rsi(close, 14) - 50.0) * 2.0
 float wCci = ta.cci(hlc3, 50)
 float wSto = (ta.sma(ta.stoch(close, high, low, 14), 3) - 50.0) * 2.0
@@ -207,7 +216,8 @@ bool rWt  = waveReplica != "HYPE (RSI+CCI+Stoch+MFI)"
 bool rMfi = waveReplica != "Research (CCI+WT)"
 int wN = (rRsi and not na(wRsi) ? 1 : 0) + (rCci and not na(wCci) ? 1 : 0) + (rSto and not na(wSto) ? 1 : 0) + (rWt and not na(wWt) ? 1 : 0) + (rMfi and not na(wMfi) ? 1 : 0)
 float wAcc = (rRsi and not na(wRsi) ? wRsi : 0.0) + (rCci and not na(wCci) ? wCci : 0.0) + (rSto and not na(wSto) ? wSto : 0.0) + (rWt and not na(wWt) ? wWt : 0.0) + (rMfi and not na(wMfi) ? wMfi : 0.0)
-float waveBlend = wN == 0 ? 0.0 : wAcc / wN
+float rwSum = rwCci + rwWt
+float waveBlend = waveReplica == "Research (CCI+WT)" and rwSum > 0 ? (rwCci * wCci + rwWt * wWt) / rwSum : wN == 0 ? 0.0 : wAcc / wN
 float waveMA = ta.ema(waveBlend, 14)
 bool waveUp = waveBlend > waveMA
 
@@ -216,10 +226,13 @@ bool showKairos = input.bool(true, "K", group = "Signals", inline = "sh")
 bool showSTLong = input.bool(true, "STLong", group = "Signals", inline = "sh")
 bool showSuperLong = input.bool(true, "SUPERLONG", group = "Signals", inline = "sh")
 bool showImpulseLong = input.bool(true, "IN", group = "Signals", inline = "sh")
+bool showBos = input.bool(false, "HH / HL breaks", group = "Signals", tooltip = "Close breaks last confirmed swing high (HH) or swing low (HL). Off by default.")
 bool showExhaustion = input.bool(false, "Exhaustion", group = "Advanced", inline = "opt")
 bool showStEnv = input.bool(false, "ST env", group = "Advanced", inline = "opt")
 
 bool gated = not confirmOnClose or barstate.isconfirmed
+bool hhBreak = showBos and gated and not na(lastSwingH) and ta.crossover(close, lastSwingH)
+bool hlBreak = showBos and gated and not na(lastSwingL) and ta.crossunder(close, lastSwingL)
 bool trigLong  = ta.crossover(cci, 0) or ta.crossover(hullFast, hullSlow) or stFlipUp or ta.crossover(macdPct, 0)
 bool chopBlock = blockChop and regime == "CHOP"
 bool volGate = not requireVol or volOk
@@ -387,6 +400,10 @@ if caShowRedDia and caRedDiamond and not caBlood
     label.new(bar_index, high, "◆", style = label.style_none, color = cFastDn, textcolor = cFastDn, size = size.small, yloc = yloc.abovebar)
 if caShowRedX and caRedCross and not caBlood
     label.new(bar_index, high, "✕", style = label.style_none, color = cFastDn, textcolor = cFastDn, size = size.small, yloc = yloc.abovebar)
+if hhBreak
+    label.new(bar_index, low, "HH", style = label.style_label_up, color = cTeal, textcolor = color.white, size = size.tiny)
+if hlBreak
+    label.new(bar_index, high, "HL", style = label.style_label_down, color = cRose, textcolor = color.white, size = size.tiny)
 
 var table dash = na
 if barstate.islast
@@ -429,6 +446,8 @@ alertcondition(caBlue and not invKill, "Cipher A blue triangle", "EMA 11 crossed
 alertcondition(caLongEma and not invKill, "Cipher A long EMA", "EMA 11 crossed EMA 34")
 alertcondition(caYellowX, "Cipher A yellow X", "WT down-cross into RSI/MF washout - caution, not a long")
 alertcondition(caBlood, "Cipher A blood diamond", "WT down-cross + EMA 5/11 death cross - flatten")
+alertcondition(hhBreak, "Kairos HH break", "Close broke last swing high — bullish structure")
+alertcondition(hlBreak, "Kairos HL break", "Close broke last swing low — structure fail")
 
 if impulseLong
     alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
