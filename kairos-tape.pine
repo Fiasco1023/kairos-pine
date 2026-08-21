@@ -33,11 +33,11 @@ int in4 = input.int(50, "MA4", minval = 1, group = "Moving Averages", inline = "
 int in5 = input.int(100, "MA5", minval = 1, group = "Moving Averages", inline = "c")
 int in6 = input.int(170, "MA6", minval = 1, group = "Moving Averages", inline = "c")
 string maType = input.string("EMA", "Method", options = ["EMA", "SMA", "RMA", "WMA", "VWMA", "HMA"], group = "Moving Averages")
-bool showFastCloud = input.bool(true, "Fast", group = "Moving Averages", inline = "cl")
-bool showMidCloud  = input.bool(true, "Mid",  group = "Moving Averages", inline = "cl")
-bool showSlowCloud = input.bool(true, "Slow", group = "Moving Averages", inline = "cl")
 bool showLines  = input.bool(false, "MA lines", group = "Moving Averages", inline = "ln")
 bool showSlow   = input.bool(true, "Slow MA", group = "Moving Averages", inline = "ln")
+bool showFastCloud = input.bool(true, "Show Clouds: Fast", group = "Moving Averages", inline = "cl")
+bool showMidCloud  = input.bool(true, "Mid",  group = "Moving Averages", inline = "cl")
+bool showSlowCloud = input.bool(true, "Slow", group = "Moving Averages", inline = "cl")
 
 int len1 = in1
 int len2 = in2
