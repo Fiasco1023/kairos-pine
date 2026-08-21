@@ -224,12 +224,15 @@ bool fadeShort = gated and cci < -cciExt and ta.crossover(cci, -cciExt) and vSlo
 bool stEnvUp = gated and ta.crossunder(st3, st1) and stMajorityUp and close > open
 bool stEnvDn = gated and ta.crossover(st3, st1) and stMajorityDn and close < open
 
-// Cipher A overlay tells (VuManChu open-source). Warnings always print. Long marks respect INV.
+// Cipher A overlay tells (VuManChu). Each mark is its own toggle — blood ◆ can stay on alone.
 // EMA ribbon in A is 5/11/15/18/21/24/28/34. WT in A is 9/13/3 (B is 9/12/3).
 // Yellow X / blood diamond are CAUTION, not shorts. STLong recipe below is unchanged.
-bool showCipherA = input.bool(false, "Cipher A marks", group = "Signals")
-bool showCaLong = input.bool(true, "CA long marks", group = "Advanced", inline = "ca")
-bool showCaWarn = input.bool(true, "CA warnings", group = "Advanced", inline = "ca")
+bool caShowBlue   = input.bool(false, "Blue ▲  (EMA 11/15)", group = "Cipher A", inline = "ca1")
+bool caShowGreen  = input.bool(false, "Green ● (EMA 11/34)", group = "Cipher A", inline = "ca1")
+bool caShowBlood  = input.bool(true,  "Blood ◆", group = "Cipher A", inline = "ca2")
+bool caShowYellow = input.bool(false, "Yellow ✕", group = "Cipher A", inline = "ca2")
+bool caShowRedDia = input.bool(false, "Red ◆", group = "Cipher A", inline = "ca3")
+bool caShowRedX   = input.bool(false, "Red ✕", group = "Cipher A", inline = "ca3")
 float caEma1 = ta.ema(close, 5)
 float caEma2 = ta.ema(close, 11)
 float caEma3 = ta.ema(close, 15)
@@ -360,17 +363,17 @@ if showStEnv and stEnvUp
     label.new(bar_index, low, "×", style = label.style_label_up, color = cSlate, textcolor = color.white, size = size.tiny)
 if showStEnv and stEnvDn
     label.new(bar_index, high, "×", style = label.style_label_down, color = cRose, textcolor = color.white, size = size.tiny)
-if showCipherA and showCaLong and caBlue and not invKill
+if caShowBlue and caBlue
     label.new(bar_index, low, "▲", style = label.style_none, color = cCaBlue, textcolor = cCaBlue, size = size.small, yloc = yloc.belowbar)
-if showCipherA and showCaLong and caLongEma and not invKill
+if caShowGreen and caLongEma
     label.new(bar_index, low, "●", style = label.style_none, color = cCaGreen, textcolor = cCaGreen, size = size.small, yloc = yloc.belowbar)
-if showCipherA and showCaWarn and caYellowX
+if caShowYellow and caYellowX
     label.new(bar_index, high, "✕", style = label.style_none, color = cCaYel, textcolor = cCaYel, size = size.normal, yloc = yloc.abovebar)
-else if showCipherA and showCaWarn and caBlood
+if caShowBlood and caBlood
     label.new(bar_index, high, "◆", style = label.style_none, color = cCaBlood, textcolor = cCaBlood, size = size.normal, yloc = yloc.abovebar)
-else if showCipherA and showCaWarn and caRedDiamond
+if caShowRedDia and caRedDiamond and not caBlood
     label.new(bar_index, high, "◆", style = label.style_none, color = cFastDn, textcolor = cFastDn, size = size.small, yloc = yloc.abovebar)
-else if showCipherA and showCaWarn and caRedCross
+if caShowRedX and caRedCross and not caBlood
     label.new(bar_index, high, "✕", style = label.style_none, color = cFastDn, textcolor = cFastDn, size = size.small, yloc = yloc.abovebar)
 
 var table dash = na
