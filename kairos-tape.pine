@@ -216,16 +216,11 @@ bool stEnvDn = gated and ta.crossover(st3, st1) and stMajorityDn and close < ope
 // EMA ribbon in A is 5/11/15/18/21/24/28/34. WT in A is 9/13/3 (B is 9/12/3).
 // Yellow X / blood diamond are CAUTION, not shorts. STLong recipe below is unchanged.
 bool showCipherA = input.bool(true, "Cipher A marks", group = "12. Cipher A")
-bool showCaRibbon = input.bool(false, "Cipher A 8-EMA ribbon", group = "12. Cipher A")
 bool showCaLong = input.bool(true, "Blue triangle / long EMA", group = "12. Cipher A")
 bool showCaWarn = input.bool(true, "Red X / diamond / yellow X / blood", group = "12. Cipher A")
 float caEma1 = ta.ema(close, 5)
 float caEma2 = ta.ema(close, 11)
 float caEma3 = ta.ema(close, 15)
-float caEma4 = ta.ema(close, 18)
-float caEma5 = ta.ema(close, 21)
-float caEma6 = ta.ema(close, 24)
-float caEma7 = ta.ema(close, 28)
 float caEma8 = ta.ema(close, 34)
 float caEsa = ta.ema(hlc3, 9)
 float caDe = ta.ema(math.abs(hlc3 - caEsa), 9)
@@ -235,7 +230,6 @@ float caWt2 = ta.sma(caWt1, 3)
 float caRsi = ta.rsi(close, 14)
 float caRange = high - low
 float caMf = ta.sma((caRange == 0 ? 0.0 : (close - open) / caRange) * 150.0, 60)
-bool caRibbonUp = caEma2 > caEma8
 bool caLongEma = ta.crossover(caEma2, caEma8)
 bool caRedCross = ta.crossunder(caEma1, caEma2)
 bool caBlue = ta.crossover(caEma2, caEma3)
@@ -328,17 +322,6 @@ pMA6 = plot(MA6, "MA6", color = showLines or showSlow ? color.new(vSlow > 0 ? cS
 fill(pMA1, pMA2, showClouds ? color.new(vFast > 0 ? cFastUp : cFastDn, 68) : na, title = "Fast cloud")
 fill(pMA3, pMA4, showClouds ? color.new(vMid  > 0 ? cMidUp  : cMidDn,  64) : na, title = "Mid cloud")
 fill(pMA5, pMA6, showClouds ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 72) : na, title = "Slow cloud")
-
-pCa1 = plot(showCaRibbon ? caEma1 : na, "CA EMA5", color = color.new(caRibbonUp ? #1573d4 : cRose, 30), linewidth = 1)
-pCa2 = plot(showCaRibbon ? caEma2 : na, "CA EMA11", color = color.new(caRibbonUp ? #3096ff : cRose, 30), linewidth = 1)
-plot(showCaRibbon ? caEma3 : na, "CA EMA15", color = color.new(caRibbonUp ? #57abff : cRose, 50), linewidth = 1)
-plot(showCaRibbon ? caEma4 : na, "CA EMA18", color = color.new(caRibbonUp ? #85c2ff : cRose, 55), linewidth = 1)
-plot(showCaRibbon ? caEma5 : na, "CA EMA21", color = color.new(caRibbonUp ? #9bcdff : cRose, 60), linewidth = 1)
-plot(showCaRibbon ? caEma6 : na, "CA EMA24", color = color.new(caRibbonUp ? #b3d9ff : cRose, 65), linewidth = 1)
-plot(showCaRibbon ? caEma7 : na, "CA EMA28", color = color.new(caRibbonUp ? #c9e5ff : cRose, 70), linewidth = 1)
-pCa8 = plot(showCaRibbon ? caEma8 : na, "CA EMA34", color = color.new(caRibbonUp ? #dfecfb : cRose, 20), linewidth = 2)
-fill(pCa1, pCa2, showCaRibbon ? color.new(#1573d4, 88) : na, title = "CA fast fill")
-fill(pCa2, pCa8, showCaRibbon ? color.new(caRibbonUp ? #3096ff : cRose, 90) : na, title = "CA ribbon")
 
 bodyMid = plot((open + close) / 2.0, display = display.none, editable = false)
 up3 = plot(dir3 < 0 ? st3 : na, "ST3 up", color = showST ? color.new(cSlate, 40) : na, style = plot.style_linebr, linewidth = 2)
