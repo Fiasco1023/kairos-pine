@@ -27,9 +27,11 @@ int in4 = input.int(50, "Len 4", minval = 1, group = "1. Ribbon", inline = "M")
 int in5 = input.int(100, "Len 5", minval = 1, group = "1. Ribbon", inline = "S")
 int in6 = input.int(170, "Len 6 (slow MA)", minval = 1, group = "1. Ribbon", inline = "S", tooltip = "Slow cloud / slow MA. Always applied.")
 string maType = input.string("EMA", "Method", options = ["EMA", "SMA", "RMA", "WMA", "VWMA", "HMA"], group = "1. Ribbon")
-bool showClouds = input.bool(true, "Clouds", group = "1. Ribbon")
+bool showFastCloud = input.bool(true, "Fast cloud", group = "1. Ribbon", inline = "cl")
+bool showMidCloud  = input.bool(true, "Mid cloud",  group = "1. Ribbon", inline = "cl")
+bool showSlowCloud = input.bool(true, "Slow cloud", group = "1. Ribbon", inline = "cl")
 bool showLines  = input.bool(false, "MA lines", group = "1. Ribbon")
-bool showSlow   = input.bool(true, "Show slow MA", group = "1. Ribbon")
+bool showSlow   = input.bool(true, "Show slow MA line", group = "1. Ribbon")
 
 int len1 = in1
 int len2 = in2
@@ -318,9 +320,9 @@ pMA3 = plot(MA3, "MA3", color = showLines ? color.new(vMid  > 0 ? cMidUp  : cMid
 pMA4 = plot(MA4, "MA4", color = showLines ? color.new(vMid  > 0 ? cMidUp  : cMidDn, 20) : na, linewidth = 1)
 pMA5 = plot(MA5, "MA5", color = showLines ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 30) : na, linewidth = 1)
 pMA6 = plot(MA6, "MA6", color = showLines or showSlow ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 0) : na, linewidth = 2)
-fill(pMA1, pMA2, showClouds ? color.new(vFast > 0 ? cFastUp : cFastDn, 68) : na, title = "Fast cloud")
-fill(pMA3, pMA4, showClouds ? color.new(vMid  > 0 ? cMidUp  : cMidDn,  64) : na, title = "Mid cloud")
-fill(pMA5, pMA6, showClouds ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 72) : na, title = "Slow cloud")
+fill(pMA1, pMA2, showFastCloud ? color.new(vFast > 0 ? cFastUp : cFastDn, 68) : na, title = "Fast cloud")
+fill(pMA3, pMA4, showMidCloud  ? color.new(vMid  > 0 ? cMidUp  : cMidDn,  64) : na, title = "Mid cloud")
+fill(pMA5, pMA6, showSlowCloud ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 72) : na, title = "Slow cloud")
 
 bodyMid = plot((open + close) / 2.0, display = display.none, editable = false)
 up3 = plot(dir3 < 0 ? st3 : na, "ST3 up", color = showST ? color.new(cSlate, 40) : na, style = plot.style_linebr, linewidth = 2)
