@@ -26,6 +26,8 @@ color cInvWash = #c45c4a
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Setup")
 bool showDash = input.bool(false, "Dashboard", group = "Setup")
 bool paintBars = input.bool(false, "Paint candles", group = "Setup")
+bool showRvol = input.bool(true, "Highlight high volume", group = "Setup", tooltip = "Recolor only candles with RVOL ≥ threshold. Copper = high volume + tiny body (effort, no result). Does not change K / STLong recipes — those already require close > open, not CCI paint.")
+float rvolHi = input.float(2.0, "High RVOL ≥", minval = 1.0, step = 0.1, group = "Setup")
 
 int in1 = input.int(14, "MA1", minval = 1, group = "Moving Averages", inline = "a")
 int in2 = input.int(21, "MA2", minval = 1, group = "Moving Averages", inline = "a")
@@ -161,6 +163,10 @@ bool requireVol = input.bool(true, "Volume gate (IN)", group = "Filters", inline
 bool showVwap = input.bool(false, "VWAP", group = "Filters", inline = "ft")
 float relVol = ta.sma(volume, volLen) == 0 ? 1.0 : volume / ta.sma(volume, volLen)
 bool volOk = relVol >= volMult
+bool hiVol = volume > 0 and relVol >= rvolHi
+float barRange = high - low
+float barBody = math.abs(close - open)
+bool volClimax = hiVol and barRange > 0 and barBody / barRange < 0.35
 float vwapVal = ta.vwap(hlc3)
 
 string htf = input.timeframe("", "HTF (blank = chart)", group = "Filters")
@@ -347,7 +353,7 @@ fill(bodyMid, stPlot, showST and dir3 > 0 ? color.new(#c45c4a, 88) : na, title =
 plot(showST and dir3 < 0 ? st3 : na, "ST3 up", color = #8aa0b4, style = plot.style_linebr, linewidth = 2)
 plot(showST and dir3 > 0 ? st3 : na, "ST3 dn", color = #c45c4a, style = plot.style_linebr, linewidth = 2)
 
-barcolor(not paintBars ? na : bearDivActive and shadeInv ? color.new(cInvWash, 55) : cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
+barcolor(showRvol and volClimax ? color.new(#c9a227, 25) : showRvol and hiVol and close >= open ? color.new(#b8d44a, 18) : showRvol and hiVol and close < open ? color.new(#ff6b4a, 18) : not paintBars ? na : bearDivActive and shadeInv ? color.new(cInvWash, 55) : cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
 
 plotshape(showImpulseLong and impulseLongRaw,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = #3aa88a, size = size.small, text = "IN", textcolor = color.white)
 plotshape(showSuperLong and SUPERLONG_RAW, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
