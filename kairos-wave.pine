@@ -1,6 +1,7 @@
 // Kairos Wave v6 - ONE composite line. Pair with Kairos Tape. Do not merge.
-// Default blend = research winner: CCI + WaveTrend (best multi-leg 5-bar, +OOS). VWAP never on.
-// BEAR label = Tape long invalidation. Not a short entry. No short dots.
+// Default blend = CCI + WaveTrend using VuManChu lengths (channel 9 / avg 12 / MA 3).
+// Green dots = VMC Cipher B buy (WT1 x WT2 while WT2 <= -53). No short dots.
+// BEAR label = Tape long invalidation. STLong lives on Tape and is not changed here.
 //@version=6
 indicator("Kairos Wave", shorttitle = "KRS Wave", overlay = false, format = format.price, max_labels_count = 100, max_lines_count = 50)
 
@@ -12,6 +13,8 @@ color cInk    = #d8d4c8
 bool showComp = input.bool(true, "Composite", group = "Show")
 bool showMA   = input.bool(true, "Composite MA", group = "Show")
 bool showDots = input.bool(true, "Oversold watch dots", group = "Show")
+bool showCipherDots = input.bool(true, "Cipher green dots (WT OS cross)", group = "Show")
+bool showMfArea = input.bool(true, "Money-flow area (VMC-style)", group = "Show")
 bool showDiv  = input.bool(true, "Divergences", group = "Show")
 bool showDivLabels = input.bool(true, "BULL / BEAR / hidden labels", group = "Show")
 bool showRaw  = input.bool(false, "Ghost legs (debug)", group = "Show")
@@ -42,9 +45,11 @@ srcCci = input.source(hlc3, "CCI source", group = "Lengths")
 int stochLen = input.int(14, "Stoch length", minval = 1, group = "Lengths")
 int smoothK = input.int(3, "K", minval = 1, group = "Lengths", inline = "k")
 int smoothD = input.int(3, "D", minval = 1, group = "Lengths", inline = "k")
-int n1 = input.int(10, "WT n1", minval = 1, group = "Lengths", inline = "w")
-int n2 = input.int(21, "WT n2", minval = 1, group = "Lengths", inline = "w")
+int n1 = input.int(9, "WT channel (VMC 9)", minval = 1, group = "Lengths", inline = "w")
+int n2 = input.int(12, "WT average (VMC 12)", minval = 1, group = "Lengths", inline = "w")
+int n3 = input.int(3, "WT MA (VMC 3)", minval = 1, group = "Lengths", inline = "w")
 int mfLen = input.int(60, "MFI length", minval = 1, group = "Lengths")
+float mfMult = input.float(175.0, "MF area multiplier", minval = 1, group = "Lengths")
 string maType = input.string("EMA", "MA type", options = ["EMA", "SMA"], group = "Lengths")
 int maLen = input.int(14, "MA length", minval = 1, group = "Lengths")
 float zone = input.float(100.0, "Signal zone (+/-)", minval = 20, group = "Lengths")
@@ -74,10 +79,15 @@ float esa = ta.ema(hlc3, n1)
 float de = ta.ema(math.abs(hlc3 - esa), n1)
 float ci = de == 0 ? 0.0 : (hlc3 - esa) / (0.015 * de)
 float wt1 = ta.ema(ci, n2)
+float wt2 = ta.sma(wt1, n3)
 float wtN = f_clamp(wt1 * 2.0)
 
 float mfi = ta.mfi(hlc3, mfLen)
 float mfiN = f_clamp((mfi - 50.0) * 4.0)
+// VMC money-flow area: SMA of candle body/range, NOT ta.mfi. Green = buy dips.
+float hlRange = high - low
+float mfArea = ta.sma((hlRange == 0 ? 0.0 : (close - open) / hlRange) * mfMult, mfLen) - 2.5
+float mfAreaN = f_clamp(mfArea * 2.0)
 
 float vwapVal = ta.vwap(hlc3)
 float atr = ta.atr(14)
@@ -108,6 +118,8 @@ bool inOs = composite <= -zone
 
 bool sigLong  = gated and crossUp and inOs
 bool primeLong  = sigLong  and nOs >= needAgree and (not requireHtf or not htfBear)
+// Cipher B green dot: WT1 crosses above WT2 while WT2 is oversold (VMC osLevel -53).
+bool cipherGreen = gated and ta.crossover(wt1, wt2) and wt2 <= -53.0
 
 _inRange(bool cond) =>
     int bars = ta.barssince(cond)
@@ -133,6 +145,8 @@ hUp = hline(zone, "OB", color = color.new(cRose, 40), linestyle = hline.style_da
 hDn = hline(-zone, "OS", color = color.new(cTeal, 40), linestyle = hline.style_dashed)
 fill(hUp, hDn, color = color.new(#3aa88a, 94), title = "Neutral zone")
 
+plot(showMfArea ? mfAreaN : na, "Money flow area", color = mfAreaN >= 0 ? color.new(#3fff00, 55) : color.new(#ff3535, 55), style = plot.style_histogram, linewidth = 2)
+
 plot(showRaw and useRsi  ? rsiN  : na, "RSI", color = color.new(#00d8e0, 78))
 plot(showRaw and useCci  ? cciN  : na, "CCI", color = color.new(#ff4fd0, 78))
 plot(showRaw and useSto  ? stoN  : na, "Stoch", color = color.new(#4c7ad9, 78))
@@ -150,6 +164,7 @@ plot(showDiv and phFound ? composite[lbR] : na, offset = -lbR, title = "Bear piv
 
 plotshape(showDots and primeLong ? composite : na, title = "Prime long watch", style = shape.diamond, location = location.absolute, color = cCopper, size = size.small)
 plotshape(showDots and sigLong and not primeLong ? composite : na, title = "Long watch", style = shape.circle, location = location.absolute, color = cTeal, size = size.tiny)
+plotshape(showCipherDots and cipherGreen ? wtN : na, title = "Cipher green dot", style = shape.circle, location = location.absolute, color = #3fff00, size = size.small)
 
 if showDivLabels and bullCond
     label.new(bar_index[lbR], composite[lbR], "BULL", style = label.style_label_up, color = cTeal, textcolor = color.black, size = size.small)
@@ -162,6 +177,7 @@ if showDivLabels and hidBear
 
 alertcondition(primeLong, "Wave Prime Long", "Blend cross up in OS + most legs oversold")
 alertcondition(sigLong, "Wave Long watch", "Composite crossed above MA in oversold zone")
+alertcondition(cipherGreen, "Wave Cipher green dot", "WT1 crossed WT2 in oversold (VMC green dot)")
 alertcondition(bullCond, "Wave regular bull div", "Regular bullish divergence on composite")
 alertcondition(bearCond, "Wave regular bear div - Tape invalidation", "Regular bearish divergence. Skip Tape longs until it fails.")
 
