@@ -1,7 +1,7 @@
 // Kairos Tape v6 - overlay. Pair with Kairos Wave (separate pane). Do not merge.
 // Long-only. Wave regular bear-div kills K / STLong / SUPERLONG / IN. No INV labels on chart.
 //@version=6
-indicator("Kairos Tape", shorttitle = "KRS Tape", overlay = true, max_labels_count = 500, max_lines_count = 50)
+indicator("Kairos Tape", shorttitle = "Kairos Tape", overlay = true, max_labels_count = 500, max_lines_count = 50)
 
 string profile = input.string("Intraday", "Profile", options = ["Scalp", "Intraday", "Swing", "Custom"], group = "0. Profile")
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "0. Profile")
