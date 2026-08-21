@@ -153,6 +153,8 @@ pZero = plot(zeroY, "Zero", color = color.new(#787B86, 40), linewidth = 1)
 pOb = plot(obY, "OB", color = color.new(cRose, 40), linewidth = 1)
 pOs = plot(osY, "OS", color = color.new(cTeal, 40), linewidth = 1)
 fill(pOb, pOs, color.new(#3aa88a, 94), title = "Signal zone")
+plot(cciOn and not pctScale ? 200.0 : na, "CCI OB 200", color = color.new(cRose, 55), linewidth = 1)
+plot(cciOn and not pctScale ? -200.0 : na, "CCI OS 200", color = color.new(cTeal, 55), linewidth = 1)
 
 plot(showMfArea ? mfAreaN : na, "Money flow area", color = mfAreaN >= 0 ? color.new(#3fff00, 55) : color.new(#ff3535, 55), style = plot.style_histogram, linewidth = 2)
 
