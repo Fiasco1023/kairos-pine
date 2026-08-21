@@ -31,7 +31,7 @@ int in2 = input.int(21, "MA2", minval = 1, group = "Moving Averages", inline = "
 int in3 = input.int(34, "MA3", minval = 1, group = "Moving Averages", inline = "b")
 int in4 = input.int(50, "MA4", minval = 1, group = "Moving Averages", inline = "b")
 int in5 = input.int(100, "MA5", minval = 1, group = "Moving Averages", inline = "c")
-int in6 = input.int(170, "MA6", minval = 1, group = "Moving Averages", inline = "c")
+int in6 = input.int(200, "MA6", minval = 1, group = "Moving Averages", inline = "c")
 string maType = input.string("EMA", "Method", options = ["EMA", "SMA", "RMA", "WMA", "VWMA", "HMA"], group = "Moving Averages")
 bool showLines  = input.bool(false, "MA lines", group = "Moving Averages", inline = "ln")
 bool showSlow   = input.bool(true, "Slow MA", group = "Moving Averages", inline = "ln")
