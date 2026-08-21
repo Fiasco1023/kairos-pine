@@ -3,43 +3,41 @@
 //@version=6
 indicator("Kairos Tape", shorttitle = "Kairos Tape", overlay = true, max_labels_count = 500, max_lines_count = 50)
 
-string profile = input.string("Intraday", "Profile", options = ["Scalp", "Intraday", "Swing", "Custom"], group = "0. Profile")
-bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "0. Profile")
-bool showDash = input.bool(false, "Show dashboard table (top right)", group = "0. Profile")
+// Palette is const so TradingView puts pickers on the Style tab (not Inputs).
+color cTeal    = #3aa88a
+color cRose    = #c45c4a
+color cCopper  = #c9a227
+color cSlate   = #8aa0b4
+color cInk     = #d8d4c8
+color cSTLong  = #e597ff
+color cSuper   = #3aff54
+color cFastUp  = #00f5d4
+color cFastDn  = #ff2d6a
+color cMidUp   = #57cc99
+color cMidDn   = #ff7a3a
+color cSlowUp  = #4ea8de
+color cSlowDn  = #9b5de5
+color cCaBlue  = #0064ff
+color cCaGreen = #3fff00
+color cCaYel   = #ffe500
+color cCaBlood = #ff003c
+color cInvWash = #c45c4a
 
-int in1 = input.int(14, "MA1", minval = 1, group = "1. Moving Averages", inline = "L", tooltip = "Fast cloud inner MA. Always applied.")
-int in2 = input.int(21, "MA2", minval = 1, group = "1. Moving Averages", inline = "L")
-int in3 = input.int(34, "MA3", minval = 1, group = "1. Moving Averages", inline = "M")
-int in4 = input.int(50, "MA4", minval = 1, group = "1. Moving Averages", inline = "M")
-int in5 = input.int(100, "MA5", minval = 1, group = "1. Moving Averages", inline = "S")
-int in6 = input.int(170, "MA6", minval = 1, group = "1. Moving Averages", inline = "S", tooltip = "Slow cloud / slow MA. Always applied.")
-string maType = input.string("EMA", "Method", options = ["EMA", "SMA", "RMA", "WMA", "VWMA", "HMA"], group = "1. Moving Averages")
-bool showFastCloud = input.bool(true, "Fast cloud", group = "1. Moving Averages", inline = "cl")
-bool showMidCloud  = input.bool(true, "Mid cloud",  group = "1. Moving Averages", inline = "cl")
-bool showSlowCloud = input.bool(true, "Slow cloud", group = "1. Moving Averages", inline = "cl")
-bool showLines  = input.bool(false, "MA lines", group = "1. Moving Averages")
-bool showSlow   = input.bool(true, "Show slow MA line", group = "1. Moving Averages")
+bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Setup")
+bool showDash = input.bool(false, "Dashboard", group = "Setup")
 
-// Color inputs: used DIRECTLY on plot/plotshape so TradingView Style tab shows pickers.
-// Cloud fills still flip up/down from these. Dynamic ternary colors never get a Style swatch.
-color cTeal    = input.color(#3aa88a, "IN / long",           group = "13. Colors", inline = "sig")
-color cRose    = input.color(#c45c4a, "Warn / ST down",      group = "13. Colors", inline = "sig")
-color cCopper  = input.color(#c9a227, "K / VWAP / EX",       group = "13. Colors", inline = "sig")
-color cSlate   = input.color(#8aa0b4, "ST up",               group = "13. Colors", inline = "sig")
-color cInk     = input.color(#d8d4c8, "Dashboard text",      group = "13. Colors")
-color cSTLong  = input.color(#e597ff, "STLong",              group = "13. Colors", inline = "L")
-color cSuper   = input.color(#3aff54, "SUPERLONG",           group = "13. Colors", inline = "L")
-color cFastUp  = input.color(#00f5d4, "Fast cloud up",       group = "13. Colors", inline = "f")
-color cFastDn  = input.color(#ff2d6a, "Fast cloud down",     group = "13. Colors", inline = "f")
-color cMidUp   = input.color(#57cc99, "Mid cloud up",        group = "13. Colors", inline = "m")
-color cMidDn   = input.color(#ff7a3a, "Mid cloud down",      group = "13. Colors", inline = "m")
-color cSlowUp  = input.color(#4ea8de, "Slow cloud up",       group = "13. Colors", inline = "s")
-color cSlowDn  = input.color(#9b5de5, "Slow cloud down",     group = "13. Colors", inline = "s")
-color cCaBlue  = input.color(#0064ff, "CA blue triangle",    group = "13. Colors", inline = "ca")
-color cCaGreen = input.color(#3fff00, "CA green circle",     group = "13. Colors", inline = "ca")
-color cCaYel   = input.color(#ffe500, "CA yellow X",         group = "13. Colors", inline = "ca2")
-color cCaBlood = input.color(#ff003c, "CA blood diamond",    group = "13. Colors", inline = "ca2")
-color cInvWash = input.color(#c45c4a, "INV bar wash",        group = "13. Colors")
+int in1 = input.int(14, "MA1", minval = 1, group = "Moving Averages", inline = "a")
+int in2 = input.int(21, "MA2", minval = 1, group = "Moving Averages", inline = "a")
+int in3 = input.int(34, "MA3", minval = 1, group = "Moving Averages", inline = "b")
+int in4 = input.int(50, "MA4", minval = 1, group = "Moving Averages", inline = "b")
+int in5 = input.int(100, "MA5", minval = 1, group = "Moving Averages", inline = "c")
+int in6 = input.int(170, "MA6", minval = 1, group = "Moving Averages", inline = "c")
+string maType = input.string("EMA", "Method", options = ["EMA", "SMA", "RMA", "WMA", "VWMA", "HMA"], group = "Moving Averages")
+bool showFastCloud = input.bool(true, "Fast", group = "Moving Averages", inline = "cl")
+bool showMidCloud  = input.bool(true, "Mid",  group = "Moving Averages", inline = "cl")
+bool showSlowCloud = input.bool(true, "Slow", group = "Moving Averages", inline = "cl")
+bool showLines  = input.bool(false, "MA lines", group = "Moving Averages", inline = "ln")
+bool showSlow   = input.bool(true, "Slow MA", group = "Moving Averages", inline = "ln")
 
 int len1 = in1
 int len2 = in2
@@ -64,13 +62,13 @@ float MA4 = f_ma(close, len4, maType)
 float MA5 = f_ma(close, len5, maType)
 float MA6 = f_ma(close, len6, maType)
 
-bool showST = input.bool(false, "Show SuperTrend", group = "2. SuperTrend")
-float f1 = input.float(1.0, "Factor 1", minval = 0.1, step = 0.1, group = "2. SuperTrend", inline = "st")
-float f2 = input.float(2.0, "Factor 2", minval = 0.1, step = 0.1, group = "2. SuperTrend", inline = "st")
-float f3 = input.float(3.0, "Factor 3", minval = 0.1, step = 0.1, group = "2. SuperTrend", inline = "st")
-int p1 = input.int(10, "ATR 1", minval = 1, group = "2. SuperTrend", inline = "ap")
-int p2 = input.int(11, "ATR 2", minval = 1, group = "2. SuperTrend", inline = "ap")
-int p3 = input.int(12, "ATR 3", minval = 1, group = "2. SuperTrend", inline = "ap")
+bool showST = input.bool(false, "Show SuperTrend", group = "Advanced")
+float f1 = input.float(1.0, "ST factor 1", minval = 0.1, step = 0.1, group = "Advanced", inline = "st")
+float f2 = input.float(2.0, "ST factor 2", minval = 0.1, step = 0.1, group = "Advanced", inline = "st")
+float f3 = input.float(3.0, "ST factor 3", minval = 0.1, step = 0.1, group = "Advanced", inline = "st")
+int p1 = input.int(10, "ATR 1", minval = 1, group = "Advanced", inline = "ap")
+int p2 = input.int(11, "ATR 2", minval = 1, group = "Advanced", inline = "ap")
+int p3 = input.int(12, "ATR 3", minval = 1, group = "Advanced", inline = "ap")
 
 [st1, dir1] = ta.supertrend(f1, p1)
 [st2, dir2] = ta.supertrend(f2, p2)
@@ -81,12 +79,12 @@ bool stMajorityDn = stBullCount <= 1
 bool stFlipUp = dir3 < 0 and dir3[1] >= 0
 bool stFlipDn = dir3 > 0 and dir3[1] <= 0
 
-bool showLarge = input.bool(true, "Large swings", group = "3. Structure", inline = "lg")
-int lgLeft = input.int(24, "L", minval = 2, group = "3. Structure", inline = "lg")
-int lgRight = input.int(24, "", minval = 2, group = "3. Structure", inline = "lg")
-bool showMedium = input.bool(true, "Medium swings", group = "3. Structure", inline = "md")
-int mdLeft = input.int(8, "M", minval = 2, group = "3. Structure", inline = "md")
-int mdRight = input.int(8, "", minval = 2, group = "3. Structure", inline = "md")
+bool showLarge = input.bool(false, "Large swings", group = "Advanced", inline = "lg")
+int lgLeft = input.int(24, "L", minval = 2, group = "Advanced", inline = "lg")
+int lgRight = input.int(24, "", minval = 2, group = "Advanced", inline = "lg")
+bool showMedium = input.bool(false, "Medium swings", group = "Advanced", inline = "md")
+int mdLeft = input.int(8, "M", minval = 2, group = "Advanced", inline = "md")
+int mdRight = input.int(8, "", minval = 2, group = "Advanced", inline = "md")
 
 float lgHi = ta.pivothigh(high, lgLeft, lgRight)
 float lgLo = ta.pivotlow(low, lgLeft, lgRight)
@@ -104,19 +102,19 @@ if showMedium and not na(mdLo)
 
 bool largeSwing = showLarge and (not na(lgHi) or not na(lgLo))
 
-int hmaFastLen = input.int(6, "HMA fast", minval = 1, group = "4. Internals")
-int hmaSlowLen = input.int(12, "HMA slow", minval = 1, group = "4. Internals")
+int hmaFastLen = input.int(6, "HMA fast", minval = 1, group = "Advanced")
+int hmaSlowLen = input.int(12, "HMA slow", minval = 1, group = "Advanced")
 float hullFast = ta.hma(close, hmaFastLen)
 float hullSlow = ta.hma(close, hmaSlowLen)
 
-int cciLen = input.int(50, "CCI length", minval = 1, group = "4. Internals")
+int cciLen = input.int(50, "CCI length", minval = 1, group = "Advanced")
 float cci = ta.cci(ohlc4, cciLen)
-int cciSoft = input.int(10, "CCI tint", group = "4. Internals")
-int cciExt = input.int(166, "CCI exhaustion", group = "4. Internals")
+int cciSoft = input.int(10, "CCI tint", group = "Advanced")
+int cciExt = input.int(166, "CCI exhaustion", group = "Advanced")
 
-int macdFast = input.int(12, "MACD fast", minval = 1, group = "4. Internals", inline = "m")
-int macdSlow = input.int(20, "MACD slow", minval = 1, group = "4. Internals", inline = "m")
-int macdSig = input.int(9, "MACD sig", minval = 1, group = "4. Internals", inline = "m")
+int macdFast = input.int(12, "MACD fast", minval = 1, group = "Advanced", inline = "m")
+int macdSlow = input.int(20, "MACD slow", minval = 1, group = "Advanced", inline = "m")
+int macdSig = input.int(9, "MACD sig", minval = 1, group = "Advanced", inline = "m")
 float macd = ta.ema(close, macdFast) - ta.ema(close, macdSlow)
 float macdSignal = ta.ema(macd, macdSig)
 float macdPct = close != 0 ? (macd / close) * 100.0 : 0.0
@@ -141,31 +139,31 @@ float ci = dAbs == 0 ? 0.0 : (hlc3 - esa) / (0.015 * dAbs)
 float wt1 = ta.ema(ci, 21)
 float wt2 = ta.sma(wt1, 4)
 
-int erLen = input.int(20, "ER lookback", minval = 5, group = "5. Regime")
+int erLen = input.int(20, "ER lookback", minval = 5, group = "Advanced")
 float erDen = math.sum(math.abs(close - close[1]), erLen)
 float er = erDen == 0 ? 1.0 : math.abs(close - close[erLen]) / erDen
 [_diPlus, _diMinus, adxVal] = ta.dmi(14, 14)
-int chopLen = input.int(14, "CHOP length", minval = 2, group = "5. Regime")
+int chopLen = input.int(14, "CHOP length", minval = 2, group = "Advanced")
 float chopRange = ta.highest(high, chopLen) - ta.lowest(low, chopLen)
 float chop = chopRange == 0 ? 50.0 : 100.0 * math.log10(math.sum(ta.atr(1), chopLen) / chopRange) / math.log10(chopLen)
-float erTrend = input.float(0.30, "ER trend >=", minval = 0.05, step = 0.05, group = "5. Regime")
-float adxTrend = input.float(20.0, "ADX trend >=", minval = 5, group = "5. Regime")
-float chopTrend = input.float(61.8, "CHOP range >=", minval = 30, group = "5. Regime")
-bool blockChop = input.bool(true, "Suppress impulse in CHOP", group = "5. Regime")
+float erTrend = input.float(0.30, "ER trend >=", minval = 0.05, step = 0.05, group = "Advanced")
+float adxTrend = input.float(20.0, "ADX trend >=", minval = 5, group = "Advanced")
+float chopTrend = input.float(61.8, "CHOP range >=", minval = 30, group = "Advanced")
+bool blockChop = input.bool(true, "Skip IN in CHOP", group = "Filters", inline = "ft")
 bool isChop = chop >= chopTrend or (er < 0.20 and adxVal < 18)
 bool isTrend = er >= erTrend and adxVal >= adxTrend and chop < chopTrend
 string regime = isChop ? "CHOP" : isTrend ? "TREND" : "TRANSITION"
 
-int volLen = input.int(20, "Rel volume SMA", minval = 1, group = "6. Volume")
-float volMult = input.float(1.0, "Min rel volume", minval = 0.0, step = 0.1, group = "6. Volume")
-bool requireVol = input.bool(true, "Require volume for impulse", group = "6. Volume")
-bool showVwap = input.bool(false, "Show VWAP", group = "6. Volume")
+int volLen = input.int(20, "Rel volume SMA", minval = 1, group = "Advanced")
+float volMult = input.float(1.0, "Min rel volume", minval = 0.0, step = 0.1, group = "Advanced")
+bool requireVol = input.bool(true, "Volume gate (IN)", group = "Filters", inline = "ft")
+bool showVwap = input.bool(false, "VWAP", group = "Filters", inline = "ft")
 float relVol = ta.sma(volume, volLen) == 0 ? 1.0 : volume / ta.sma(volume, volLen)
 bool volOk = relVol >= volMult
 float vwapVal = ta.vwap(hlc3)
 
-string htf = input.timeframe("", "HTF (blank = chart)", group = "7. HTF")
-bool requireHtf = input.bool(true, "Require HTF agreement", group = "7. HTF")
+string htf = input.timeframe("", "HTF (blank = chart)", group = "Filters")
+bool requireHtf = input.bool(true, "HTF agreement", group = "Filters", inline = "ft")
 float htfClose = request.security(syminfo.tickerid, htf, close[1], barmerge.gaps_off, barmerge.lookahead_on)
 float htfEma50 = request.security(syminfo.tickerid, htf, ta.ema(close, 50)[1], barmerge.gaps_off, barmerge.lookahead_on)
 float htfCci50 = request.security(syminfo.tickerid, htf, ta.cci(ohlc4, 50)[1], barmerge.gaps_off, barmerge.lookahead_on)
@@ -186,7 +184,7 @@ int vWt   = wt1 > wt2 ? 1 : wt1 < wt2 ? -1 : 0
 int score = vFast + vMid + vSlow + vPx + vST + vHma + vCci + vMacd + vTema + vWt
 
 // Hidden Wave blend - must match the Wave pane preset or INV will not line up with BEAR.
-string waveReplica = input.string("Research (CCI+WT)", "Wave blend replica", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5"], group = "11. Invalidation")
+string waveReplica = input.string("Research (CCI+WT)", "Wave blend replica", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5"], group = "Advanced")
 float wRsi = math.max(-200.0, math.min(200.0, ta.rsi(close, 14) * 4.0 - 200.0))
 float wCci = math.max(-200.0, math.min(200.0, ta.cci(hlc3, 50)))
 float wSto = math.max(-200.0, math.min(200.0, ta.sma(ta.stoch(close, high, low, 14), 3) * 4.0 - 200.0))
@@ -206,10 +204,13 @@ float waveBlend = wN == 0 ? 0.0 : wAcc / wN
 float waveMA = ta.ema(waveBlend, 14)
 bool waveUp = waveBlend > waveMA
 
-int longThresh  = input.int(6, "Impulse long score >=", minval = 1, maxval = 10, group = "8. Signals")
-bool showImpulseLong = input.bool(true, "Impulse long (IN)", group = "8. Signals")
-bool showExhaustion = input.bool(false, "Exhaustion diamonds", group = "8. Signals")
-bool showStEnv = input.bool(false, "ST env X", group = "8. Signals")
+int longThresh  = input.int(6, "IN score ≥", minval = 1, maxval = 10, group = "Signals")
+bool showKairos = input.bool(true, "K", group = "Signals", inline = "sh")
+bool showSTLong = input.bool(true, "STLong", group = "Signals", inline = "sh")
+bool showSuperLong = input.bool(true, "SUPERLONG", group = "Signals", inline = "sh")
+bool showImpulseLong = input.bool(true, "IN", group = "Signals", inline = "sh")
+bool showExhaustion = input.bool(false, "Exhaustion", group = "Advanced", inline = "opt")
+bool showStEnv = input.bool(false, "ST env", group = "Advanced", inline = "opt")
 
 bool gated = not confirmOnClose or barstate.isconfirmed
 bool trigLong  = ta.crossover(cci, 0) or ta.crossover(hullFast, hullSlow) or stFlipUp or ta.crossover(macdPct, 0)
@@ -225,9 +226,9 @@ bool stEnvDn = gated and ta.crossover(st3, st1) and stMajorityDn and close < ope
 // Cipher A overlay tells (VuManChu open-source). Warnings always print. Long marks respect INV.
 // EMA ribbon in A is 5/11/15/18/21/24/28/34. WT in A is 9/13/3 (B is 9/12/3).
 // Yellow X / blood diamond are CAUTION, not shorts. STLong recipe below is unchanged.
-bool showCipherA = input.bool(true, "Cipher A marks", group = "12. Cipher A")
-bool showCaLong = input.bool(true, "Blue triangle / long EMA", group = "12. Cipher A")
-bool showCaWarn = input.bool(true, "Red X / diamond / yellow X / blood", group = "12. Cipher A")
+bool showCipherA = input.bool(false, "Cipher A marks", group = "Signals")
+bool showCaLong = input.bool(true, "CA long marks", group = "Advanced", inline = "ca")
+bool showCaWarn = input.bool(true, "CA warnings", group = "Advanced", inline = "ca")
 float caEma1 = ta.ema(close, 5)
 float caEma2 = ta.ema(close, 11)
 float caEma3 = ta.ema(close, 15)
@@ -248,10 +249,6 @@ bool caYellowX = caRedDiamond and caWt2 < 45.0 and caWt2 > -80.0 and caRsi < 30.
 bool caBlood = caRedDiamond and caRedCross
 
 // SUPERLONG - exact W2T recipe (lime "L").
-// Original: emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2
-//           and ta.crossover(macd, 0.0002) and ccibuy and temabuy and temabuy2
-// temabuy2 is TEMA50 > TEMA100 (NOT 34>50 - that swap is why HYPE daily went quiet).
-bool showSuperLong = input.bool(true, "Show SUPERLONG", group = "9. W2T recipes")
 bool emabuy3 = MA3 > MA6
 bool hmaaboveema5 = hull80 > MA6
 bool hmaaboveema = hull2 > MA6
@@ -262,8 +259,6 @@ bool temabuy2 = tema3 > tema4
 bool SUPERLONG_RAW = emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2 and ta.crossover(macd, 0) and ccibuy and temabuy and temabuy2
 
 // STLong - original size.small purple L.
-// Original: STBUY and CCI cross 0 and TFccibuy and hmabuy and HMA>ST1/2/3 and BullCandle
-bool showSTLong = input.bool(true, "Show STLong", group = "9. W2T recipes")
 bool hmabuy = hullFast > hullSlow
 bool hmasupertrendbuy = hullFast > st3 and hullFast > st1 and hullFast > st2
 bool STLong_RAW = stMajorityUp and ta.crossover(cci, 0) and hmabuy and hmasupertrendbuy and close > open
@@ -271,12 +266,12 @@ bool STLong_RAW = stMajorityUp and ta.crossover(cci, 0) and hmabuy and hmasupert
 // Invalidation: regular bearish divergence on the Wave blend (price HH + blend LH).
 // Prints INV at the SAME pivot Wave labels BEAR (offset left by pivot-right).
 // Sticky: kills K / STLong / SUPERLONG / IN until a regular bull div or a CLOSE above the pivot high.
-bool killOnBearDiv = input.bool(true, "Kill longs on Wave bear div", group = "11. Invalidation")
-int invLeft = input.int(5, "Div pivot left", minval = 1, group = "11. Invalidation")
-int invRight = input.int(5, "Div pivot right", minval = 1, group = "11. Invalidation")
-int invMax = input.int(60, "Div max lookback", minval = 5, group = "11. Invalidation")
-int invMin = input.int(5, "Div min lookback", minval = 1, group = "11. Invalidation")
-bool shadeInv = input.bool(true, "Shade bars while Wave INV is live", group = "11. Invalidation")
+bool killOnBearDiv = input.bool(true, "Kill longs on Wave BEAR", group = "Filters")
+int invLeft = input.int(5, "Div left", minval = 1, group = "Advanced", inline = "dv")
+int invRight = input.int(5, "right", minval = 1, group = "Advanced", inline = "dv")
+int invMax = input.int(60, "Div max", minval = 5, group = "Advanced", inline = "dv2")
+int invMin = input.int(5, "min", minval = 1, group = "Advanced", inline = "dv2")
+bool shadeInv = input.bool(true, "Shade INV bars", group = "Filters")
 
 _inRangeInv(bool cond) =>
     int bars = ta.barssince(cond)
@@ -309,44 +304,53 @@ bool SUPERLONG = SUPERLONG_RAW and not invKill
 bool STLong = STLong_RAW and not invKill
 
 // Matrix winner: CCI cross 0 while the tape is still bullish.
-bool showKairos = input.bool(true, "Kairos long (K)", group = "10. Combined")
-bool kRequireFast = input.bool(true, "Require fast cloud up", group = "10. Combined")
-bool kRequireMid = input.bool(true, "Require mid cloud up", group = "10. Combined")
-bool kRequirePx = input.bool(true, "Require close > slow EMA", group = "10. Combined")
-bool kRequireWave = input.bool(false, "Require Wave blend teal", group = "10. Combined")
-bool kRequireST = input.bool(false, "Require SuperTrend majority up", group = "10. Combined")
+bool kRequireFast = input.bool(true, "K: fast up", group = "Signals", inline = "k")
+bool kRequireMid = input.bool(true, "mid up", group = "Signals", inline = "k")
+bool kRequirePx = input.bool(true, "px > MA6", group = "Signals", inline = "k")
+bool kRequireWave = input.bool(false, "K: Wave teal", group = "Advanced", inline = "kx")
+bool kRequireST = input.bool(false, "K: ST up", group = "Advanced", inline = "kx")
 bool kairosRaw = ta.crossover(cci, 0) and close > open and (not kRequireFast or vFast == 1) and (not kRequireMid or vMid == 1) and (not kRequirePx or close > MA6) and (not kRequireWave or waveUp) and (not kRequireST or stMajorityUp)
 bool kairosLong = kairosRaw and not invKill
 bool anyLongRaw = impulseLongRaw or SUPERLONG_RAW or STLong_RAW or kairosRaw
 bool skippedLong = invKill and anyLongRaw
 
-plot(showVwap ? vwapVal : na, "VWAP", color = cCopper, linewidth = 1)
+plot(showVwap ? vwapVal : na, "VWAP", color = #c9a227, linewidth = 1)
 
-color fastCol = vFast > 0 ? cFastUp : cFastDn
-color midCol  = vMid  > 0 ? cMidUp  : cMidDn
-color slowCol = vSlow > 0 ? cSlowUp : cSlowDn
-pMA1 = plot(MA1, "MA1", color = color.new(fastCol, showLines ? 10 : 55), linewidth = 1)
-pMA2 = plot(MA2, "MA2", color = color.new(fastCol, showLines ? 25 : 55), linewidth = 1)
-pMA3 = plot(MA3, "MA3", color = color.new(midCol,  showLines ? 5  : 50), linewidth = 1)
-pMA4 = plot(MA4, "MA4", color = color.new(midCol,  showLines ? 20 : 50), linewidth = 1)
-pMA5 = plot(MA5, "MA5", color = color.new(slowCol, showLines ? 30 : 45), linewidth = 1)
-pMA6 = plot(MA6, "MA6", color = color.new(slowCol, showLines or showSlow ? 0 : 45), linewidth = 2)
-fill(pMA1, pMA2, showFastCloud ? color.new(fastCol, 68) : na, title = "Fast cloud")
-fill(pMA3, pMA4, showMidCloud  ? color.new(midCol,  64) : na, title = "Mid cloud")
-fill(pMA5, pMA6, showSlowCloud ? color.new(slowCol, 72) : na, title = "Slow cloud")
+// Split up/down with CONSTANT colors so Style tab gets pickers. Fill hides when the pair is na.
+dispF = showLines ? display.all : display.none
+dispM = showLines ? display.all : display.none
+dispS = showLines or showSlow ? display.all : display.none
+pF1u = plot(showFastCloud and vFast > 0 ? MA1 : na, "MA1 up",   color = #00f5d4, display = dispF)
+pF2u = plot(showFastCloud and vFast > 0 ? MA2 : na, "MA2 up",   color = #00f5d4, display = dispF)
+pF1d = plot(showFastCloud and vFast <= 0 ? MA1 : na, "MA1 down", color = #ff2d6a, display = dispF)
+pF2d = plot(showFastCloud and vFast <= 0 ? MA2 : na, "MA2 down", color = #ff2d6a, display = dispF)
+pM3u = plot(showMidCloud and vMid > 0 ? MA3 : na, "MA3 up",   color = #57cc99, display = dispM)
+pM4u = plot(showMidCloud and vMid > 0 ? MA4 : na, "MA4 up",   color = #57cc99, display = dispM)
+pM3d = plot(showMidCloud and vMid <= 0 ? MA3 : na, "MA3 down", color = #ff7a3a, display = dispM)
+pM4d = plot(showMidCloud and vMid <= 0 ? MA4 : na, "MA4 down", color = #ff7a3a, display = dispM)
+pS5u = plot(showSlowCloud and vSlow > 0 ? MA5 : na, "MA5 up",   color = #4ea8de, display = dispS)
+pS6u = plot(showSlowCloud and vSlow > 0 ? MA6 : na, "MA6 up",   color = #4ea8de, display = dispS, linewidth = 2)
+pS5d = plot(showSlowCloud and vSlow <= 0 ? MA5 : na, "MA5 down", color = #9b5de5, display = dispS)
+pS6d = plot(showSlowCloud and vSlow <= 0 ? MA6 : na, "MA6 down", color = #9b5de5, display = dispS, linewidth = 2)
+fill(pF1u, pF2u, color.new(#00f5d4, 68), title = "Fast cloud up")
+fill(pF1d, pF2d, color.new(#ff2d6a, 68), title = "Fast cloud down")
+fill(pM3u, pM4u, color.new(#57cc99, 64), title = "Mid cloud up")
+fill(pM3d, pM4d, color.new(#ff7a3a, 64), title = "Mid cloud down")
+fill(pS5u, pS6u, color.new(#4ea8de, 72), title = "Slow cloud up")
+fill(pS5d, pS6d, color.new(#9b5de5, 72), title = "Slow cloud down")
 
 bodyMid = plot((open + close) / 2.0, display = display.none, editable = false)
-up3 = plot(showST and dir3 < 0 ? st3 : na, "ST3 up", color = cSlate, style = plot.style_linebr, linewidth = 2)
-dn3 = plot(showST and dir3 > 0 ? st3 : na, "ST3 dn", color = cRose,  style = plot.style_linebr, linewidth = 2)
-fill(bodyMid, up3, showST ? color.new(cTeal, 88) : na, title = "ST up")
-fill(bodyMid, dn3, showST ? color.new(cRose, 88) : na, title = "ST dn")
+up3 = plot(showST and dir3 < 0 ? st3 : na, "ST3 up", color = #8aa0b4, style = plot.style_linebr, linewidth = 2)
+dn3 = plot(showST and dir3 > 0 ? st3 : na, "ST3 dn", color = #c45c4a, style = plot.style_linebr, linewidth = 2)
+fill(bodyMid, up3, color.new(#3aa88a, 88), title = "ST up")
+fill(bodyMid, dn3, color.new(#c45c4a, 88), title = "ST dn")
 
 barcolor(bearDivActive and shadeInv ? color.new(cInvWash, 55) : cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
 
-plotshape(showImpulseLong and impulseLong,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = cTeal,   size = size.small, text = "IN", textcolor = color.white)
-plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = cSuper, size = size.tiny, text = "L", textcolor = color.white)
-plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = cSTLong, size = size.small, text = "L")
-plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = cCopper, size = size.normal, text = "K", textcolor = color.white)
+plotshape(showImpulseLong and impulseLong,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = #3aa88a, size = size.small, text = "IN", textcolor = color.white)
+plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
+plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
+plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = #c9a227, size = size.normal, text = "K", textcolor = color.white)
 
 // Labels do not count toward the 64-plot cap. Keep plotshapes only for the four longs.
 if showExhaustion and fadeLong
@@ -379,7 +383,7 @@ if barstate.islast
         color scoreCol = score >= longThresh ? cTeal : score <= -6 ? cRose : cInk
         color htfCol = htfBull ? cTeal : htfBear ? cRose : cInk
         table.cell(dash, 0, 0, "KAIROS TAPE", text_color = cCopper, text_size = size.small)
-        table.cell(dash, 1, 0, profile, text_color = cCopper, text_size = size.small)
+        table.cell(dash, 1, 0, "", text_color = cCopper, text_size = size.small)
         table.cell(dash, 0, 1, "Regime", text_color = cInk, text_size = size.small)
         table.cell(dash, 1, 1, regime, text_color = regimeCol, text_size = size.small)
         table.cell(dash, 0, 2, "Score", text_color = cInk, text_size = size.small)
