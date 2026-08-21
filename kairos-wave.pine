@@ -10,23 +10,23 @@ color cRose   = #c45c4a
 color cCopper = #c9a227
 color cInk    = #d8d4c8
 
-bool showComp = input.bool(true, "Composite", group = "Show")
-bool showMA   = input.bool(true, "Composite MA", group = "Show")
-bool showDots = input.bool(true, "Oversold watch dots", group = "Show")
-bool showCipherDots = input.bool(true, "Cipher green dots (WT OS cross)", group = "Show")
-bool showMfArea = input.bool(true, "Money-flow area (VMC-style)", group = "Show")
-bool showDiv  = input.bool(true, "Divergences", group = "Show")
-bool showDivLabels = input.bool(false, "BULL / BEAR / hidden labels", group = "Show")
-bool showRaw  = input.bool(false, "Ghost legs (debug)", group = "Show")
-bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Show")
+bool showComp = input.bool(true, "Composite", group = "Show", inline = "s")
+bool showMA   = input.bool(true, "MA", group = "Show", inline = "s")
+bool showDots = input.bool(true, "OS dots", group = "Show", inline = "s")
+bool showCipherDots = input.bool(true, "Cipher dots", group = "Show", inline = "s2")
+bool showMfArea = input.bool(true, "Money flow", group = "Show", inline = "s2")
+bool showDiv  = input.bool(true, "Div lines", group = "Show", inline = "s3")
+bool showDivLabels = input.bool(false, "Labels", group = "Show", inline = "s3")
+bool showRaw  = input.bool(false, "Ghost legs", group = "Show")
+bool confirmOnClose = input.bool(true, "Confirm on close", group = "Show")
 
-string blendPreset = input.string("Research (CCI+WT)", "Blend preset", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Legs in the blend")
-bool inRsi  = input.bool(false, "RSI", group = "Legs in the blend", inline = "a")
-bool inCci  = input.bool(true,  "CCI", group = "Legs in the blend", inline = "a")
-bool inSto  = input.bool(false, "Stoch", group = "Legs in the blend", inline = "a")
-bool inWt   = input.bool(true,  "WaveTrend", group = "Legs in the blend", inline = "b")
-bool inMfi  = input.bool(false, "MFI", group = "Legs in the blend", inline = "b")
-bool inVwap = input.bool(false, "VWAP dist", group = "Legs in the blend", inline = "b")
+string blendPreset = input.string("Research (CCI+WT)", "Preset", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Blend")
+bool inRsi  = input.bool(false, "RSI", group = "Blend", inline = "a")
+bool inCci  = input.bool(true,  "CCI", group = "Blend", inline = "a")
+bool inSto  = input.bool(false, "Stoch", group = "Blend", inline = "a")
+bool inWt   = input.bool(true,  "WaveTrend", group = "Blend", inline = "b")
+bool inMfi  = input.bool(false, "MFI", group = "Blend", inline = "b")
+bool inVwap = input.bool(false, "VWAP dist", group = "Blend", inline = "b")
 
 bool isHype = blendPreset == "HYPE (RSI+CCI+Stoch+MFI)"
 bool isFull = blendPreset == "Full 5"
