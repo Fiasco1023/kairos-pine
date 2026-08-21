@@ -95,6 +95,9 @@ bool wtOn  = useWt and not na(wt1)
 bool mfiOn = useMfi and not na(mfi)
 bool vwapOn = useVwap and not na(vwapDist)
 int nLegs = (rsiOn ? 1 : 0) + (cciOn ? 1 : 0) + (stoOn ? 1 : 0) + (wtOn ? 1 : 0) + (mfiOn ? 1 : 0) + (vwapOn ? 1 : 0)
+bool pctOnly = nLegs > 0 and not cciOn and not wtOn and not vwapOn
+bool zeroOnly = nLegs > 0 and not rsiOn and not stoOn and not mfiOn
+float accPct = (rsiOn ? rsi : 0.0) + (stoOn ? kRaw : 0.0) + (mfiOn ? mfi : 0.0)
 float accB = (rsiOn ? rsiB : 0.0) + (cciOn ? cci : 0.0) + (stoOn ? stoB : 0.0) + (wtOn ? wt1 : 0.0) + (mfiOn ? mfiB : 0.0) + (vwapOn ? vwapDist : 0.0)
 float native = rsiOn ? rsi : cciOn ? cci : stoOn ? kRaw : wtOn ? wt1 : mfiOn ? mfi : vwapDist
 float rsiN = rsi
@@ -103,13 +106,13 @@ float stoN = kRaw
 float wtN = wt1
 float mfiN = mfi
 float vwapN = vwapDist
-float composite = nLegs == 0 ? 0.0 : nLegs == 1 ? native : accB / nLegs
+float composite = nLegs == 0 ? 0.0 : nLegs == 1 ? native : pctOnly ? accPct / nLegs : accB / nLegs
 float compositeMA = maType == "SMA" ? ta.sma(composite, maLen) : ta.ema(composite, maLen)
 
-bool pctScale = nLegs == 1 and (rsiOn or stoOn or mfiOn)
+bool pctScale = pctOnly
 float zeroY = pctScale ? 50.0 : 0.0
-float obY = nLegs == 1 and rsiOn ? 70.0 : nLegs == 1 and (stoOn or mfiOn) ? 80.0 : nLegs == 1 and wtOn ? 60.0 : nLegs == 1 and cciOn ? 100.0 : zone
-float osY = nLegs == 1 and rsiOn ? 30.0 : nLegs == 1 and (stoOn or mfiOn) ? 20.0 : nLegs == 1 and wtOn ? -60.0 : nLegs == 1 and cciOn ? -100.0 : -zone
+float obY = pctScale ? (rsiOn ? 70.0 : 80.0) : nLegs == 1 and wtOn ? 60.0 : nLegs == 1 and cciOn ? 100.0 : zeroOnly and cciOn ? 100.0 : zeroOnly ? 60.0 : 60.0
+float osY = pctScale ? (rsiOn ? 30.0 : 20.0) : nLegs == 1 and wtOn ? -60.0 : nLegs == 1 and cciOn ? -100.0 : zeroOnly and cciOn ? -100.0 : zeroOnly ? -60.0 : -60.0
 
 int nOs = (rsiOn and rsi <= 30.0 ? 1 : 0) + (cciOn and cci <= -100.0 ? 1 : 0) + (stoOn and kRaw <= 20.0 ? 1 : 0) + (wtOn and wt1 <= -60.0 ? 1 : 0) + (mfiOn and mfi <= 20.0 ? 1 : 0) + (vwapOn and vwapDist <= -zone ? 1 : 0)
 int needAgree = nLegs <= 1 ? 1 : nLegs > 4 ? nLegs - 2 : 2
