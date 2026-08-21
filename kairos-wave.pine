@@ -20,7 +20,7 @@ bool showBlendTag = input.bool(true, "Blend tag", group = "Show", tooltip = "Sho
 bool confirmOnClose = input.bool(true, "Confirm on close", group = "Show")
 
 bool showComp = input.bool(true, "Composite", group = "Blend", tooltip = "On: one blended line. Off: each live oscillator plots as itself (own MA + divergences).")
-string blendPreset = input.string("Research (CCI+WT)", "Preset", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Blend", tooltip = "Named presets pick the blend. Custom uses the boxes below. TradingView cannot auto-check those boxes when you change this dropdown.")
+string blendPreset = input.string("Research (RSI+WT)", "Preset", options = ["Research (RSI+WT)", "CCI+WT", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Blend", tooltip = "Research = RSI 60 / WT 40 (matrix winner). CCI+WT uses 20/80. Custom uses the boxes + Weights sliders.")
 bool inRsi  = input.bool(false, "RSI", group = "Custom:", inline = "a", tooltip = "Only used when Preset = Custom.")
 bool inCci  = input.bool(true,  "CCI", group = "Custom:", inline = "a", tooltip = "Only used when Preset = Custom.")
 bool inSto  = input.bool(false, "Stoch", group = "Custom:", inline = "a", tooltip = "Only used when Preset = Custom.")
@@ -28,22 +28,31 @@ bool inWt   = input.bool(true,  "WT", group = "Custom:", inline = "b", tooltip =
 bool inMfi  = input.bool(false, "MFI", group = "Custom:", inline = "b", tooltip = "Only used when Preset = Custom.")
 bool inVwap = input.bool(false, "VWAP", group = "Custom:", inline = "b", tooltip = "Only used when Preset = Custom.")
 
+bool isResearch = blendPreset == "Research (RSI+WT)"
+bool isCciWt = blendPreset == "CCI+WT"
 bool isHype = blendPreset == "HYPE (RSI+CCI+Stoch+MFI)"
 bool isFull = blendPreset == "Full 5"
 bool isCust = blendPreset == "Custom"
-bool useRsi  = isHype or isFull or (isCust and inRsi)
-bool useCci  = not isCust or inCci
+bool useRsi  = isResearch or isHype or isFull or (isCust and inRsi)
+bool useCci  = isCciWt or isHype or isFull or (isCust and inCci)
 bool useSto  = isHype or isFull or (isCust and inSto)
-bool useWt   = blendPreset == "Research (CCI+WT)" or isFull or (isCust and inWt)
+bool useWt   = isResearch or isCciWt or isFull or (isCust and inWt)
 bool useMfi  = isHype or isFull or (isCust and inMfi)
 bool useVwap = isCust and inVwap
 
-float wtRsi = input.float(50.0, "RSI", minval = 0, step = 5, group = "Weights", inline = "w1")
-float wtCci = input.float(20.0, "CCI", minval = 0, step = 5, group = "Weights", inline = "w1", tooltip = "Research default 20/80 CCI/WT — highest hit on that pair.")
+float wtRsi = input.float(60.0, "RSI", minval = 0, step = 5, group = "Weights", inline = "w1")
+float wtCci = input.float(20.0, "CCI", minval = 0, step = 5, group = "Weights", inline = "w1")
 float wtSto = input.float(50.0, "Stoch", minval = 0, step = 5, group = "Weights", inline = "w2")
-float wtWt  = input.float(80.0, "WT", minval = 0, step = 5, group = "Weights", inline = "w2")
+float wtWt  = input.float(40.0, "WT", minval = 0, step = 5, group = "Weights", inline = "w2")
 float wtMfi = input.float(50.0, "MFI", minval = 0, step = 5, group = "Weights", inline = "w3")
 float wtVwap = input.float(50.0, "VWAP", minval = 0, step = 5, group = "Weights", inline = "w3")
+// Named presets lock study weights so sliders can't silently desync Research / CCI+WT.
+float wRsiA = isResearch ? 60.0 : wtRsi
+float wCciA = isCciWt ? 20.0 : wtCci
+float wStoA = wtSto
+float wWtA  = isResearch ? 40.0 : isCciWt ? 80.0 : wtWt
+float wMfiA = wtMfi
+float wVwapA = wtVwap
 
 int rsiLen = input.int(14, "RSI length", minval = 1, group = "Lengths")
 srcRsi = input.source(close, "RSI source", group = "Lengths")
@@ -103,10 +112,10 @@ bool vwapOn = useVwap and not na(vwapDist)
 int nLegs = (rsiOn ? 1 : 0) + (cciOn ? 1 : 0) + (stoOn ? 1 : 0) + (wtOn ? 1 : 0) + (mfiOn ? 1 : 0) + (vwapOn ? 1 : 0)
 bool pctOnly = nLegs > 0 and not cciOn and not wtOn and not vwapOn
 bool zeroOnly = nLegs > 0 and not rsiOn and not stoOn and not mfiOn
-float wSumPct = (rsiOn ? wtRsi : 0.0) + (stoOn ? wtSto : 0.0) + (mfiOn ? wtMfi : 0.0)
-float accPct = (rsiOn ? rsi * wtRsi : 0.0) + (stoOn ? kRaw * wtSto : 0.0) + (mfiOn ? mfi * wtMfi : 0.0)
-float wSumB = (rsiOn ? wtRsi : 0.0) + (cciOn ? wtCci : 0.0) + (stoOn ? wtSto : 0.0) + (wtOn ? wtWt : 0.0) + (mfiOn ? wtMfi : 0.0) + (vwapOn ? wtVwap : 0.0)
-float accB = (rsiOn ? rsiB * wtRsi : 0.0) + (cciOn ? cci * wtCci : 0.0) + (stoOn ? stoB * wtSto : 0.0) + (wtOn ? wt1 * wtWt : 0.0) + (mfiOn ? mfiB * wtMfi : 0.0) + (vwapOn ? vwapDist * wtVwap : 0.0)
+float wSumPct = (rsiOn ? wRsiA : 0.0) + (stoOn ? wStoA : 0.0) + (mfiOn ? wMfiA : 0.0)
+float accPct = (rsiOn ? rsi * wRsiA : 0.0) + (stoOn ? kRaw * wStoA : 0.0) + (mfiOn ? mfi * wMfiA : 0.0)
+float wSumB = (rsiOn ? wRsiA : 0.0) + (cciOn ? wCciA : 0.0) + (stoOn ? wStoA : 0.0) + (wtOn ? wWtA : 0.0) + (mfiOn ? wMfiA : 0.0) + (vwapOn ? wVwapA : 0.0)
+float accB = (rsiOn ? rsiB * wRsiA : 0.0) + (cciOn ? cci * wCciA : 0.0) + (stoOn ? stoB * wStoA : 0.0) + (wtOn ? wt1 * wWtA : 0.0) + (mfiOn ? mfiB * wMfiA : 0.0) + (vwapOn ? vwapDist * wVwapA : 0.0)
 float native = rsiOn ? rsi : cciOn ? cci : stoOn ? kRaw : wtOn ? wt1 : mfiOn ? mfi : vwapDist
 float composite = nLegs == 0 ? 0.0 : nLegs == 1 ? native : pctOnly ? (wSumPct == 0 ? 0.0 : accPct / wSumPct) : (wSumB == 0 ? 0.0 : accB / wSumB)
 float compositeMA = maType == "SMA" ? ta.sma(composite, maLen) : ta.ema(composite, maLen)
