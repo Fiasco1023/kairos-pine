@@ -212,6 +212,37 @@ bool fadeShort = gated and cci < -cciExt and ta.crossover(cci, -cciExt) and vSlo
 bool stEnvUp = gated and ta.crossunder(st3, st1) and stMajorityUp and close > open
 bool stEnvDn = gated and ta.crossover(st3, st1) and stMajorityDn and close < open
 
+// Cipher A overlay tells (VuManChu open-source). Warnings always print. Long marks respect INV.
+// EMA ribbon in A is 5/11/15/18/21/24/28/34. WT in A is 9/13/3 (B is 9/12/3).
+// Yellow X / blood diamond are CAUTION, not shorts. STLong recipe below is unchanged.
+bool showCipherA = input.bool(true, "Cipher A marks", group = "12. Cipher A")
+bool showCaRibbon = input.bool(false, "Cipher A 8-EMA ribbon", group = "12. Cipher A")
+bool showCaLong = input.bool(true, "Blue triangle / long EMA", group = "12. Cipher A")
+bool showCaWarn = input.bool(true, "Red X / diamond / yellow X / blood", group = "12. Cipher A")
+float caEma1 = ta.ema(close, 5)
+float caEma2 = ta.ema(close, 11)
+float caEma3 = ta.ema(close, 15)
+float caEma4 = ta.ema(close, 18)
+float caEma5 = ta.ema(close, 21)
+float caEma6 = ta.ema(close, 24)
+float caEma7 = ta.ema(close, 28)
+float caEma8 = ta.ema(close, 34)
+float caEsa = ta.ema(hlc3, 9)
+float caDe = ta.ema(math.abs(hlc3 - caEsa), 9)
+float caCi = caDe == 0 ? 0.0 : (hlc3 - caEsa) / (0.015 * caDe)
+float caWt1 = ta.ema(caCi, 13)
+float caWt2 = ta.sma(caWt1, 3)
+float caRsi = ta.rsi(close, 14)
+float caRange = high - low
+float caMf = ta.sma((caRange == 0 ? 0.0 : (close - open) / caRange) * 150.0, 60)
+bool caRibbonUp = caEma2 > caEma8
+bool caLongEma = ta.crossover(caEma2, caEma8)
+bool caRedCross = ta.crossunder(caEma1, caEma2)
+bool caBlue = ta.crossover(caEma2, caEma3)
+bool caRedDiamond = ta.crossunder(caWt1, caWt2)
+bool caYellowX = caRedDiamond and caWt2 < 45.0 and caWt2 > -80.0 and caRsi < 30.0 and caRsi > 15.0 and caMf < -5.0
+bool caBlood = caRedDiamond and caRedCross
+
 // SUPERLONG - exact W2T recipe (lime "L").
 // Original: emabuy3 and hmaaboveema5 and hmaaboveema and hmaaboveema2
 //           and ta.crossover(macd, 0.0002) and ccibuy and temabuy and temabuy2
@@ -298,6 +329,17 @@ fill(pMA1, pMA2, showClouds ? color.new(vFast > 0 ? cFastUp : cFastDn, 68) : na,
 fill(pMA3, pMA4, showClouds ? color.new(vMid  > 0 ? cMidUp  : cMidDn,  64) : na, title = "Mid cloud")
 fill(pMA5, pMA6, showClouds ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 72) : na, title = "Slow cloud")
 
+pCa1 = plot(showCaRibbon ? caEma1 : na, "CA EMA5", color = color.new(caRibbonUp ? #1573d4 : cRose, 30), linewidth = 1)
+pCa2 = plot(showCaRibbon ? caEma2 : na, "CA EMA11", color = color.new(caRibbonUp ? #3096ff : cRose, 30), linewidth = 1)
+plot(showCaRibbon ? caEma3 : na, "CA EMA15", color = color.new(caRibbonUp ? #57abff : cRose, 50), linewidth = 1)
+plot(showCaRibbon ? caEma4 : na, "CA EMA18", color = color.new(caRibbonUp ? #85c2ff : cRose, 55), linewidth = 1)
+plot(showCaRibbon ? caEma5 : na, "CA EMA21", color = color.new(caRibbonUp ? #9bcdff : cRose, 60), linewidth = 1)
+plot(showCaRibbon ? caEma6 : na, "CA EMA24", color = color.new(caRibbonUp ? #b3d9ff : cRose, 65), linewidth = 1)
+plot(showCaRibbon ? caEma7 : na, "CA EMA28", color = color.new(caRibbonUp ? #c9e5ff : cRose, 70), linewidth = 1)
+pCa8 = plot(showCaRibbon ? caEma8 : na, "CA EMA34", color = color.new(caRibbonUp ? #dfecfb : cRose, 20), linewidth = 2)
+fill(pCa1, pCa2, showCaRibbon ? color.new(#1573d4, 88) : na, title = "CA fast fill")
+fill(pCa2, pCa8, showCaRibbon ? color.new(caRibbonUp ? #3096ff : cRose, 90) : na, title = "CA ribbon")
+
 bodyMid = plot((open + close) / 2.0, display = display.none, editable = false)
 up3 = plot(dir3 < 0 ? st3 : na, "ST3 up", color = showST ? color.new(cSlate, 40) : na, style = plot.style_linebr, linewidth = 2)
 dn3 = plot(dir3 > 0 ? st3 : na, "ST3 dn", color = showST ? color.new(cRose, 40) : na, style = plot.style_linebr, linewidth = 2)
@@ -314,6 +356,12 @@ plotshape(showStEnv and stEnvDn,      title = "ST env down",   style = shape.xcr
 plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
 plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
 plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = cCopper, size = size.normal, text = "K", textcolor = color.white)
+plotshape(showCipherA and showCaLong and caBlue and not invKill, title = "CA blue triangle", style = shape.triangleup, location = location.belowbar, color = #0064ff, size = size.tiny)
+plotshape(showCipherA and showCaLong and caLongEma and not invKill, title = "CA long EMA", style = shape.circle, location = location.belowbar, color = #3fff00, size = size.tiny)
+plotshape(showCipherA and showCaWarn and caRedCross, title = "CA red X", style = shape.xcross, location = location.abovebar, color = #ff2d6a, size = size.tiny)
+plotshape(showCipherA and showCaWarn and caRedDiamond and not caBlood and not caYellowX, title = "CA red diamond", style = shape.diamond, location = location.abovebar, color = #ff2d6a, size = size.tiny)
+plotshape(showCipherA and showCaWarn and caYellowX, title = "CA yellow X", style = shape.xcross, location = location.abovebar, color = #ffe500, size = size.small)
+plotshape(showCipherA and showCaWarn and caBlood, title = "CA blood diamond", style = shape.diamond, location = location.abovebar, color = #ff003c, size = size.small)
 // INV sits on the SAME candle Wave labels BEAR (pivot, 5 bars back).
 plotshape(showInv and bearDiv, title = "Wave BEAR invalidation", style = shape.xcross, location = location.abovebar, color = cRose, size = size.small, text = "INV", textcolor = color.white, offset = -invRight)
 // L-INV on a live long that tried to print after the BEAR is already active.
@@ -363,6 +411,10 @@ alertcondition(STLong,       "Kairos Tape STLong",    "W2T STLong: CCI cross 0 +
 alertcondition(kairosLong,   "Kairos combined long",  "CCI cross 0 + bullish fast/mid cloud + price > slow EMA")
 alertcondition(bearDiv,      "Kairos Wave bear div INV", "Regular bearish divergence - Tape longs killed until bull div or close above pivot high")
 alertcondition(skippedLong,  "Kairos long skipped", "Tape long skipped because Wave bear div is live")
+alertcondition(caBlue and not invKill, "Cipher A blue triangle", "EMA 11 crossed EMA 15")
+alertcondition(caLongEma and not invKill, "Cipher A long EMA", "EMA 11 crossed EMA 34")
+alertcondition(caYellowX, "Cipher A yellow X", "WT down-cross into RSI/MF washout - caution, not a long")
+alertcondition(caBlood, "Cipher A blood diamond", "WT down-cross + EMA 5/11 death cross - flatten")
 
 if impulseLong
     alert("KAIROS TAPE impulse LONG | score " + str.tostring(score) + " | " + regime, alert.freq_once_per_bar_close)
