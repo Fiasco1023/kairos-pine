@@ -20,23 +20,23 @@ string profile = input.string("Intraday", "Profile", options = ["Scalp", "Intrad
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "0. Profile")
 bool showDash = input.bool(false, "Show dashboard table (top right)", group = "0. Profile")
 
-int in1 = input.int(14, "Len 1", minval = 1, group = "1. Ribbon", inline = "L")
+int in1 = input.int(14, "Len 1", minval = 1, group = "1. Ribbon", inline = "L", tooltip = "Always applied. Profile does not override.")
 int in2 = input.int(21, "Len 2", minval = 1, group = "1. Ribbon", inline = "L")
 int in3 = input.int(34, "Len 3", minval = 1, group = "1. Ribbon", inline = "M")
 int in4 = input.int(50, "Len 4", minval = 1, group = "1. Ribbon", inline = "M")
 int in5 = input.int(100, "Len 5", minval = 1, group = "1. Ribbon", inline = "S")
-int in6 = input.int(170, "Len 6", minval = 1, group = "1. Ribbon", inline = "S")
+int in6 = input.int(170, "Len 6 (slow MA)", minval = 1, group = "1. Ribbon", inline = "S", tooltip = "Slow cloud / slow MA. Always applied.")
 string maType = input.string("EMA", "Method", options = ["EMA", "SMA", "RMA", "WMA", "VWMA", "HMA"], group = "1. Ribbon")
 bool showClouds = input.bool(true, "Clouds", group = "1. Ribbon")
 bool showLines  = input.bool(false, "MA lines", group = "1. Ribbon")
 bool showSlow   = input.bool(true, "Show slow MA", group = "1. Ribbon")
 
-int len1 = profile == "Scalp" ? 8  : profile == "Swing" ? 21  : profile == "Custom" ? in1 : 14
-int len2 = profile == "Scalp" ? 13 : profile == "Swing" ? 34  : profile == "Custom" ? in2 : 21
-int len3 = profile == "Scalp" ? 21 : profile == "Swing" ? 55  : profile == "Custom" ? in3 : 34
-int len4 = profile == "Scalp" ? 34 : profile == "Swing" ? 89  : profile == "Custom" ? in4 : 50
-int len5 = profile == "Scalp" ? 55 : profile == "Swing" ? 144 : profile == "Custom" ? in5 : 100
-int len6 = profile == "Scalp" ? 89 : profile == "Swing" ? 233 : profile == "Custom" ? in6 : 170
+int len1 = in1
+int len2 = in2
+int len3 = in3
+int len4 = in4
+int len5 = in5
+int len6 = in6
 
 f_ma(float src, int length, string typ) =>
     switch typ
