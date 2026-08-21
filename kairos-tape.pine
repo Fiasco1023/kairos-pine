@@ -316,8 +316,8 @@ bool skippedLong = invKill and anyLongRaw
 
 plot(showVwap ? vwapVal : na, "VWAP", color = #c9a227, linewidth = 1)
 
-// One continuous plot per MA. Never na-split — that draws diagonal lines across the chart.
-// Hide the stroke with full transparency when the line toggle is off; fills still work.
+// Plots stay on every bar (no na). Fill COLOR goes na on the inactive side so
+// Pine cannot draw a diagonal from the last up-cloud to the next one.
 color hide = color.new(#000000, 100)
 color colFast = vFast > 0 ? #00f5d4 : #ff2d6a
 color colMid  = vMid  > 0 ? #57cc99 : #ff7a3a
@@ -328,15 +328,19 @@ pMA3 = plot(MA3, "MA3", color = showLines ? colMid  : hide, linewidth = 1)
 pMA4 = plot(MA4, "MA4", color = showLines ? colMid  : hide, linewidth = 1)
 pMA5 = plot(MA5, "MA5", color = showLines ? colSlow : hide, linewidth = 1)
 pMA6 = plot(MA6, "MA6", color = showLines or showSlow ? colSlow : hide, linewidth = 2)
-fill(pMA1, pMA2, showFastCloud ? color.new(colFast, 68) : na, title = "Fast cloud")
-fill(pMA3, pMA4, showMidCloud  ? color.new(colMid,  64) : na, title = "Mid cloud")
-fill(pMA5, pMA6, showSlowCloud ? color.new(colSlow, 72) : na, title = "Slow cloud")
+fill(pMA1, pMA2, showFastCloud and vFast > 0 ? color.new(#00f5d4, 68) : na, title = "Fast cloud up")
+fill(pMA1, pMA2, showFastCloud and vFast < 0 ? color.new(#ff2d6a, 68) : na, title = "Fast cloud down")
+fill(pMA3, pMA4, showMidCloud  and vMid  > 0 ? color.new(#57cc99, 64) : na, title = "Mid cloud up")
+fill(pMA3, pMA4, showMidCloud  and vMid  < 0 ? color.new(#ff7a3a, 64) : na, title = "Mid cloud down")
+fill(pMA5, pMA6, showSlowCloud and vSlow > 0 ? color.new(#4ea8de, 72) : na, title = "Slow cloud up")
+fill(pMA5, pMA6, showSlowCloud and vSlow < 0 ? color.new(#9b5de5, 72) : na, title = "Slow cloud down")
 
 bodyMid = plot((open + close) / 2.0, display = display.none, editable = false)
-up3 = plot(showST and dir3 < 0 ? st3 : na, "ST3 up", color = #8aa0b4, style = plot.style_linebr, linewidth = 2)
-dn3 = plot(showST and dir3 > 0 ? st3 : na, "ST3 dn", color = #c45c4a, style = plot.style_linebr, linewidth = 2)
-fill(bodyMid, up3, color.new(#3aa88a, 88), title = "ST up")
-fill(bodyMid, dn3, color.new(#c45c4a, 88), title = "ST dn")
+stPlot  = plot(st3, display = display.none, editable = false)
+fill(bodyMid, stPlot, showST and dir3 < 0 ? color.new(#3aa88a, 88) : na, title = "ST up")
+fill(bodyMid, stPlot, showST and dir3 > 0 ? color.new(#c45c4a, 88) : na, title = "ST dn")
+plot(showST and dir3 < 0 ? st3 : na, "ST3 up", color = #8aa0b4, style = plot.style_linebr, linewidth = 2)
+plot(showST and dir3 > 0 ? st3 : na, "ST3 dn", color = #c45c4a, style = plot.style_linebr, linewidth = 2)
 
 barcolor(bearDivActive and shadeInv ? color.new(cInvWash, 55) : cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
 
