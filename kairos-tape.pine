@@ -25,6 +25,7 @@ color cInvWash = #c45c4a
 
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Setup")
 bool showDash = input.bool(false, "Dashboard", group = "Setup")
+bool paintBars = input.bool(false, "Paint candles", group = "Setup")
 
 int in1 = input.int(14, "MA1", minval = 1, group = "Moving Averages", inline = "a")
 int in2 = input.int(21, "MA2", minval = 1, group = "Moving Averages", inline = "a")
@@ -343,12 +344,12 @@ fill(bodyMid, stPlot, showST and dir3 > 0 ? color.new(#c45c4a, 88) : na, title =
 plot(showST and dir3 < 0 ? st3 : na, "ST3 up", color = #8aa0b4, style = plot.style_linebr, linewidth = 2)
 plot(showST and dir3 > 0 ? st3 : na, "ST3 dn", color = #c45c4a, style = plot.style_linebr, linewidth = 2)
 
-barcolor(bearDivActive and shadeInv ? color.new(cInvWash, 55) : cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
+barcolor(not paintBars ? na : bearDivActive and shadeInv ? color.new(cInvWash, 55) : cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
 
-plotshape(showImpulseLong and impulseLong,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = #3aa88a, size = size.small, text = "IN", textcolor = color.white)
-plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
-plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
-plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = #c9a227, size = size.normal, text = "K", textcolor = color.white)
+plotshape(showImpulseLong and impulseLongRaw,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = #3aa88a, size = size.small, text = "IN", textcolor = color.white)
+plotshape(showSuperLong and SUPERLONG_RAW, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
+plotshape(showSTLong and STLong_RAW, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
+plotshape(showKairos and kairosRaw, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = #c9a227, size = size.normal, text = "K", textcolor = color.white)
 
 // Labels do not count toward the 64-plot cap. Keep plotshapes only for the four longs.
 if showExhaustion and fadeLong
