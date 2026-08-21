@@ -17,16 +17,17 @@ bool showMfArea = input.bool(true, "Money flow", group = "Show", inline = "s2")
 bool showDiv  = input.bool(true, "Div lines", group = "Show", inline = "s3")
 bool showDivLabels = input.bool(false, "Labels", group = "Show", inline = "s3")
 bool showRaw  = input.bool(false, "Ghost legs", group = "Show")
+bool showBlendTag = input.bool(true, "Blend tag", group = "Show", tooltip = "Shows which oscillators are actually live. Pine cannot re-tick the Custom boxes when you change Preset.")
 bool confirmOnClose = input.bool(true, "Confirm on close", group = "Show")
 
-bool showComp = input.bool(true, "Composite", group = "Blend", tooltip = "On: one blended line. Off: each checked oscillator plots as itself (own MA + divergences).")
-string blendPreset = input.string("Research (CCI+WT)", "Preset", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Blend")
-bool inRsi  = input.bool(false, "RSI", group = "Blend", inline = "a")
-bool inCci  = input.bool(true,  "CCI", group = "Blend", inline = "a")
-bool inSto  = input.bool(false, "Stoch", group = "Blend", inline = "a")
-bool inWt   = input.bool(true,  "WaveTrend", group = "Blend", inline = "b")
-bool inMfi  = input.bool(false, "MFI", group = "Blend", inline = "b")
-bool inVwap = input.bool(false, "VWAP dist", group = "Blend", inline = "b")
+bool showComp = input.bool(true, "Composite", group = "Blend", tooltip = "On: one blended line. Off: each live oscillator plots as itself (own MA + divergences).")
+string blendPreset = input.string("Research (CCI+WT)", "Preset", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Blend", tooltip = "Named presets pick the blend. Custom uses the boxes. TradingView cannot auto-check those boxes when you change this dropdown.")
+bool inRsi  = input.bool(false, "Custom: RSI", group = "Blend", inline = "a", tooltip = "Only used when Preset = Custom.")
+bool inCci  = input.bool(true,  "CCI", group = "Blend", inline = "a", tooltip = "Only used when Preset = Custom.")
+bool inSto  = input.bool(false, "Stoch", group = "Blend", inline = "a", tooltip = "Only used when Preset = Custom.")
+bool inWt   = input.bool(true,  "WT", group = "Blend", inline = "b", tooltip = "Only used when Preset = Custom.")
+bool inMfi  = input.bool(false, "MFI", group = "Blend", inline = "b", tooltip = "Only used when Preset = Custom.")
+bool inVwap = input.bool(false, "VWAP", group = "Blend", inline = "b", tooltip = "Only used when Preset = Custom.")
 
 bool isHype = blendPreset == "HYPE (RSI+CCI+Stoch+MFI)"
 bool isFull = blendPreset == "Full 5"
@@ -238,3 +239,14 @@ if primeLong
     alert("KAIROS WAVE prime LONG watch | blend " + str.tostring(composite, "#.0") + " | legs OS " + str.tostring(nOs) + "/" + str.tostring(nLegs), alert.freq_once_per_bar_close)
 if bearCond
     alert("KAIROS WAVE BEAR DIV | Tape longs invalidated until bull div or pivot-high break", alert.freq_once_per_bar_close)
+
+var table blendTag = na
+if barstate.islast and showBlendTag
+    string live = (useRsi ? "RSI  " : "") + (useCci ? "CCI  " : "") + (useSto ? "Stoch  " : "") + (useWt ? "WT  " : "") + (useMfi ? "MFI  " : "") + (useVwap ? "VWAP" : "")
+    if na(blendTag)
+        blendTag := table.new(position.top_right, 1, 2, bgcolor = color.new(#141821, 12), border_width = 1, frame_width = 1, frame_color = color.new(cCopper, 55))
+    table.cell(blendTag, 0, 0, isCust ? "CUSTOM" : blendPreset, text_color = cCopper, text_size = size.tiny)
+    table.cell(blendTag, 0, 1, str.replace_all(live, "  ", " "), text_color = cInk, text_size = size.small)
+else if not na(blendTag)
+    table.delete(blendTag)
+    blendTag := na
