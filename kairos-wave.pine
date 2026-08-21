@@ -38,6 +38,13 @@ bool useWt   = blendPreset == "Research (CCI+WT)" or isFull or (isCust and inWt)
 bool useMfi  = isHype or isFull or (isCust and inMfi)
 bool useVwap = isCust and inVwap
 
+float wtRsi = input.float(50.0, "RSI", minval = 0, step = 5, group = "Weights", inline = "w1")
+float wtCci = input.float(20.0, "CCI", minval = 0, step = 5, group = "Weights", inline = "w1", tooltip = "Research default 20/80 CCI/WT — highest hit on that pair.")
+float wtSto = input.float(50.0, "Stoch", minval = 0, step = 5, group = "Weights", inline = "w2")
+float wtWt  = input.float(80.0, "WT", minval = 0, step = 5, group = "Weights", inline = "w2")
+float wtMfi = input.float(50.0, "MFI", minval = 0, step = 5, group = "Weights", inline = "w3")
+float wtVwap = input.float(50.0, "VWAP", minval = 0, step = 5, group = "Weights", inline = "w3")
+
 int rsiLen = input.int(14, "RSI length", minval = 1, group = "Lengths")
 srcRsi = input.source(close, "RSI source", group = "Lengths")
 int cciLen = input.int(50, "CCI length", minval = 1, group = "Lengths")
@@ -96,10 +103,12 @@ bool vwapOn = useVwap and not na(vwapDist)
 int nLegs = (rsiOn ? 1 : 0) + (cciOn ? 1 : 0) + (stoOn ? 1 : 0) + (wtOn ? 1 : 0) + (mfiOn ? 1 : 0) + (vwapOn ? 1 : 0)
 bool pctOnly = nLegs > 0 and not cciOn and not wtOn and not vwapOn
 bool zeroOnly = nLegs > 0 and not rsiOn and not stoOn and not mfiOn
-float accPct = (rsiOn ? rsi : 0.0) + (stoOn ? kRaw : 0.0) + (mfiOn ? mfi : 0.0)
-float accB = (rsiOn ? rsiB : 0.0) + (cciOn ? cci : 0.0) + (stoOn ? stoB : 0.0) + (wtOn ? wt1 : 0.0) + (mfiOn ? mfiB : 0.0) + (vwapOn ? vwapDist : 0.0)
+float wSumPct = (rsiOn ? wtRsi : 0.0) + (stoOn ? wtSto : 0.0) + (mfiOn ? wtMfi : 0.0)
+float accPct = (rsiOn ? rsi * wtRsi : 0.0) + (stoOn ? kRaw * wtSto : 0.0) + (mfiOn ? mfi * wtMfi : 0.0)
+float wSumB = (rsiOn ? wtRsi : 0.0) + (cciOn ? wtCci : 0.0) + (stoOn ? wtSto : 0.0) + (wtOn ? wtWt : 0.0) + (mfiOn ? wtMfi : 0.0) + (vwapOn ? wtVwap : 0.0)
+float accB = (rsiOn ? rsiB * wtRsi : 0.0) + (cciOn ? cci * wtCci : 0.0) + (stoOn ? stoB * wtSto : 0.0) + (wtOn ? wt1 * wtWt : 0.0) + (mfiOn ? mfiB * wtMfi : 0.0) + (vwapOn ? vwapDist * wtVwap : 0.0)
 float native = rsiOn ? rsi : cciOn ? cci : stoOn ? kRaw : wtOn ? wt1 : mfiOn ? mfi : vwapDist
-float composite = nLegs == 0 ? 0.0 : nLegs == 1 ? native : pctOnly ? accPct / nLegs : accB / nLegs
+float composite = nLegs == 0 ? 0.0 : nLegs == 1 ? native : pctOnly ? (wSumPct == 0 ? 0.0 : accPct / wSumPct) : (wSumB == 0 ? 0.0 : accB / wSumB)
 float compositeMA = maType == "SMA" ? ta.sma(composite, maLen) : ta.ema(composite, maLen)
 
 bool pctScale = pctOnly
