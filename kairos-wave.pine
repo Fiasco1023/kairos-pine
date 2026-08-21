@@ -20,7 +20,7 @@ bool showBlendTag = input.bool(true, "Blend tag", group = "Show", tooltip = "Sho
 bool confirmOnClose = input.bool(true, "Confirm on close", group = "Show")
 
 bool showComp = input.bool(true, "Composite", group = "Blend", tooltip = "On: one blended line. Off: each live oscillator plots as itself (own MA + divergences).")
-string blendPreset = input.string("Research (RSI+WT)", "Preset", options = ["Research (RSI+WT)", "CCI+WT", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Blend", tooltip = "Research = RSI 60 / WT 40 (matrix winner). CCI+WT uses 20/80. Custom uses the boxes + Weights sliders.")
+string blendPreset = input.string("Research (RSI+WT)", "Preset", options = ["Research (RSI+WT)", "Stoch+WT", "CCI+WT", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Blend", tooltip = "Research = RSI 60/WT 40. Stoch+WT = 20/80 (best PF). CCI+WT = 20/80. Custom uses boxes + sliders.")
 bool inRsi  = input.bool(false, "RSI", group = "Custom:", inline = "a", tooltip = "Only used when Preset = Custom.")
 bool inCci  = input.bool(true,  "CCI", group = "Custom:", inline = "a", tooltip = "Only used when Preset = Custom.")
 bool inSto  = input.bool(false, "Stoch", group = "Custom:", inline = "a", tooltip = "Only used when Preset = Custom.")
@@ -29,14 +29,15 @@ bool inMfi  = input.bool(false, "MFI", group = "Custom:", inline = "b", tooltip 
 bool inVwap = input.bool(false, "VWAP", group = "Custom:", inline = "b", tooltip = "Only used when Preset = Custom.")
 
 bool isResearch = blendPreset == "Research (RSI+WT)"
+bool isStochWt = blendPreset == "Stoch+WT"
 bool isCciWt = blendPreset == "CCI+WT"
 bool isHype = blendPreset == "HYPE (RSI+CCI+Stoch+MFI)"
 bool isFull = blendPreset == "Full 5"
 bool isCust = blendPreset == "Custom"
 bool useRsi  = isResearch or isHype or isFull or (isCust and inRsi)
 bool useCci  = isCciWt or isHype or isFull or (isCust and inCci)
-bool useSto  = isHype or isFull or (isCust and inSto)
-bool useWt   = isResearch or isCciWt or isFull or (isCust and inWt)
+bool useSto  = isStochWt or isHype or isFull or (isCust and inSto)
+bool useWt   = isResearch or isStochWt or isCciWt or isFull or (isCust and inWt)
 bool useMfi  = isHype or isFull or (isCust and inMfi)
 bool useVwap = isCust and inVwap
 
@@ -49,8 +50,8 @@ float wtVwap = input.float(50.0, "VWAP", minval = 0, step = 5, group = "Weights"
 // Named presets lock study weights so sliders can't silently desync Research / CCI+WT.
 float wRsiA = isResearch ? 60.0 : wtRsi
 float wCciA = isCciWt ? 20.0 : wtCci
-float wStoA = wtSto
-float wWtA  = isResearch ? 40.0 : isCciWt ? 80.0 : wtWt
+float wStoA = isStochWt ? 20.0 : wtSto
+float wWtA  = isResearch ? 40.0 : (isCciWt or isStochWt ? 80.0 : wtWt)
 float wMfiA = wtMfi
 float wVwapA = wtVwap
 
