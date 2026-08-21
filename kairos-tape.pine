@@ -198,7 +198,7 @@ int vWt   = wt1 > wt2 ? 1 : wt1 < wt2 ? -1 : 0
 int score = vFast + vMid + vSlow + vPx + vST + vHma + vCci + vMacd + vTema + vWt
 
 // Hidden Wave blend - must match the Wave pane preset or INV will not line up with BEAR.
-string waveReplica = input.string("Research (RSI+WT)", "Wave blend replica", options = ["Research (RSI+WT)", "CCI+WT", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5"], group = "Advanced")
+string waveReplica = input.string("Research (RSI+WT)", "Wave blend replica", options = ["Research (RSI+WT)", "Stoch+WT", "CCI+WT", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5"], group = "Advanced")
 float rwRsi = input.float(60.0, "Replica RSI wt", minval = 0, step = 5, group = "Advanced", inline = "rw")
 float rwWt = input.float(40.0, "Replica WT wt", minval = 0, step = 5, group = "Advanced", inline = "rw")
 float wRsi = (ta.rsi(close, 14) - 50.0) * 2.0
@@ -209,15 +209,15 @@ float deW = ta.ema(math.abs(hlc3 - esaW), 9)
 float ciW = deW == 0 ? 0.0 : (hlc3 - esaW) / (0.015 * deW)
 float wWt  = ta.ema(ciW, 12)
 float wMfi = (ta.mfi(hlc3, 60) - 50.0) * 2.0
-bool rRsi = waveReplica != "CCI+WT"
-bool rCci = waveReplica != "Research (RSI+WT)"
-bool rSto = waveReplica == "HYPE (RSI+CCI+Stoch+MFI)" or waveReplica == "Full 5"
+bool rRsi = waveReplica == "Research (RSI+WT)" or waveReplica == "HYPE (RSI+CCI+Stoch+MFI)" or waveReplica == "Full 5"
+bool rCci = waveReplica == "CCI+WT" or waveReplica == "HYPE (RSI+CCI+Stoch+MFI)" or waveReplica == "Full 5"
+bool rSto = waveReplica == "Stoch+WT" or waveReplica == "HYPE (RSI+CCI+Stoch+MFI)" or waveReplica == "Full 5"
 bool rWt  = waveReplica != "HYPE (RSI+CCI+Stoch+MFI)"
 bool rMfi = waveReplica == "HYPE (RSI+CCI+Stoch+MFI)" or waveReplica == "Full 5"
 int wN = (rRsi and not na(wRsi) ? 1 : 0) + (rCci and not na(wCci) ? 1 : 0) + (rSto and not na(wSto) ? 1 : 0) + (rWt and not na(wWt) ? 1 : 0) + (rMfi and not na(wMfi) ? 1 : 0)
 float wAcc = (rRsi and not na(wRsi) ? wRsi : 0.0) + (rCci and not na(wCci) ? wCci : 0.0) + (rSto and not na(wSto) ? wSto : 0.0) + (rWt and not na(wWt) ? wWt : 0.0) + (rMfi and not na(wMfi) ? wMfi : 0.0)
 float rwSum = rwRsi + rwWt
-float waveBlend = waveReplica == "Research (RSI+WT)" and rwSum > 0 ? (rwRsi * wRsi + rwWt * wWt) / rwSum : waveReplica == "CCI+WT" ? (20.0 * wCci + 80.0 * wWt) / 100.0 : wN == 0 ? 0.0 : wAcc / wN
+float waveBlend = waveReplica == "Research (RSI+WT)" and rwSum > 0 ? (rwRsi * wRsi + rwWt * wWt) / rwSum : waveReplica == "CCI+WT" ? (20.0 * wCci + 80.0 * wWt) / 100.0 : waveReplica == "Stoch+WT" ? (20.0 * wSto + 80.0 * wWt) / 100.0 : wN == 0 ? 0.0 : wAcc / wN
 float waveMA = ta.ema(waveBlend, 14)
 bool waveUp = waveBlend > waveMA
 
