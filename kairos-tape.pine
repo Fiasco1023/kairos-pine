@@ -316,28 +316,33 @@ bool skippedLong = invKill and anyLongRaw
 
 plot(showVwap ? vwapVal : na, "VWAP", color = #c9a227, linewidth = 1)
 
-// Split up/down with CONSTANT colors so Style tab gets pickers. Fill hides when the pair is na.
-dispF = showLines ? display.all : display.none
-dispM = showLines ? display.all : display.none
-dispS = showLines or showSlow ? display.all : display.none
-pF1u = plot(showFastCloud and vFast > 0 ? MA1 : na, "MA1 up",   color = #00f5d4, display = dispF)
-pF2u = plot(showFastCloud and vFast > 0 ? MA2 : na, "MA2 up",   color = #00f5d4, display = dispF)
-pF1d = plot(showFastCloud and vFast <= 0 ? MA1 : na, "MA1 down", color = #ff2d6a, display = dispF)
-pF2d = plot(showFastCloud and vFast <= 0 ? MA2 : na, "MA2 down", color = #ff2d6a, display = dispF)
-pM3u = plot(showMidCloud and vMid > 0 ? MA3 : na, "MA3 up",   color = #57cc99, display = dispM)
-pM4u = plot(showMidCloud and vMid > 0 ? MA4 : na, "MA4 up",   color = #57cc99, display = dispM)
-pM3d = plot(showMidCloud and vMid <= 0 ? MA3 : na, "MA3 down", color = #ff7a3a, display = dispM)
-pM4d = plot(showMidCloud and vMid <= 0 ? MA4 : na, "MA4 down", color = #ff7a3a, display = dispM)
-pS5u = plot(showSlowCloud and vSlow > 0 ? MA5 : na, "MA5 up",   color = #4ea8de, display = dispS)
-pS6u = plot(showSlowCloud and vSlow > 0 ? MA6 : na, "MA6 up",   color = #4ea8de, display = dispS, linewidth = 2)
-pS5d = plot(showSlowCloud and vSlow <= 0 ? MA5 : na, "MA5 down", color = #9b5de5, display = dispS)
-pS6d = plot(showSlowCloud and vSlow <= 0 ? MA6 : na, "MA6 down", color = #9b5de5, display = dispS, linewidth = 2)
+// Cloud fills use hidden pairs. style_linebr so na gaps do not draw diagonals.
+pF1u = plot(showFastCloud and vFast > 0 ? MA1 : na, "Fast MA1 up",   color = #00f5d4, display = display.none, editable = false, style = plot.style_linebr)
+pF2u = plot(showFastCloud and vFast > 0 ? MA2 : na, "Fast MA2 up",   color = #00f5d4, display = display.none, editable = false, style = plot.style_linebr)
+pF1d = plot(showFastCloud and vFast <= 0 ? MA1 : na, "Fast MA1 down", color = #ff2d6a, display = display.none, editable = false, style = plot.style_linebr)
+pF2d = plot(showFastCloud and vFast <= 0 ? MA2 : na, "Fast MA2 down", color = #ff2d6a, display = display.none, editable = false, style = plot.style_linebr)
+pM3u = plot(showMidCloud and vMid > 0 ? MA3 : na, "Mid MA3 up",   color = #57cc99, display = display.none, editable = false, style = plot.style_linebr)
+pM4u = plot(showMidCloud and vMid > 0 ? MA4 : na, "Mid MA4 up",   color = #57cc99, display = display.none, editable = false, style = plot.style_linebr)
+pM3d = plot(showMidCloud and vMid <= 0 ? MA3 : na, "Mid MA3 down", color = #ff7a3a, display = display.none, editable = false, style = plot.style_linebr)
+pM4d = plot(showMidCloud and vMid <= 0 ? MA4 : na, "Mid MA4 down", color = #ff7a3a, display = display.none, editable = false, style = plot.style_linebr)
+pS5u = plot(showSlowCloud and vSlow > 0 ? MA5 : na, "Slow MA5 up",   color = #4ea8de, display = display.none, editable = false, style = plot.style_linebr)
+pS6u = plot(showSlowCloud and vSlow > 0 ? MA6 : na, "Slow MA6 up",   color = #4ea8de, display = display.none, editable = false, style = plot.style_linebr)
+pS5d = plot(showSlowCloud and vSlow <= 0 ? MA5 : na, "Slow MA5 down", color = #9b5de5, display = display.none, editable = false, style = plot.style_linebr)
+pS6d = plot(showSlowCloud and vSlow <= 0 ? MA6 : na, "Slow MA6 down", color = #9b5de5, display = display.none, editable = false, style = plot.style_linebr)
 fill(pF1u, pF2u, color.new(#00f5d4, 68), title = "Fast cloud up")
 fill(pF1d, pF2d, color.new(#ff2d6a, 68), title = "Fast cloud down")
 fill(pM3u, pM4u, color.new(#57cc99, 64), title = "Mid cloud up")
 fill(pM3d, pM4d, color.new(#ff7a3a, 64), title = "Mid cloud down")
 fill(pS5u, pS6u, color.new(#4ea8de, 72), title = "Slow cloud up")
 fill(pS5d, pS6d, color.new(#9b5de5, 72), title = "Slow cloud down")
+
+// Visible MA lines are continuous (no na splits). Slow MA (MA6) is its own toggle.
+plot(showLines ? MA1 : na, "MA1", color = vFast > 0 ? #00f5d4 : #ff2d6a, linewidth = 1)
+plot(showLines ? MA2 : na, "MA2", color = vFast > 0 ? #00f5d4 : #ff2d6a, linewidth = 1)
+plot(showLines ? MA3 : na, "MA3", color = vMid  > 0 ? #57cc99 : #ff7a3a, linewidth = 1)
+plot(showLines ? MA4 : na, "MA4", color = vMid  > 0 ? #57cc99 : #ff7a3a, linewidth = 1)
+plot(showLines ? MA5 : na, "MA5", color = vSlow > 0 ? #4ea8de : #9b5de5, linewidth = 1)
+plot(showSlow  ? MA6 : na, "MA6", color = vSlow > 0 ? #4ea8de : #9b5de5, linewidth = 2)
 
 bodyMid = plot((open + close) / 2.0, display = display.none, editable = false)
 up3 = plot(showST and dir3 < 0 ? st3 : na, "ST3 up", color = #8aa0b4, style = plot.style_linebr, linewidth = 2)
