@@ -1,7 +1,7 @@
-// Kairos Wave v6 - ONE composite line. Pair with Kairos Tape. Do not merge.
-// Default blend = CCI + WaveTrend using VuManChu lengths (channel 9 / avg 12 / MA 3).
+// Kairos Wave v6 - pane oscillator. Pair with Kairos Tape. Do not merge.
+// Composite on: one blend (default CCI + WaveTrend VMC 9/12/3).
+// Composite off: each checked oscillator plots as itself, with its own MA and divergences.
 // Green dots = VMC Cipher B buy (WT1 x WT2 while WT2 <= -53). No short dots.
-// BEAR label = Tape long invalidation. STLong lives on Tape and is not changed here.
 //@version=6
 indicator("Kairos Wave", shorttitle = "Kairos Wave", overlay = false, format = format.price, max_labels_count = 100, max_lines_count = 50)
 
@@ -10,7 +10,6 @@ color cRose   = #c45c4a
 color cCopper = #c9a227
 color cInk    = #d8d4c8
 
-bool showComp = input.bool(true, "Composite", group = "Show", inline = "s")
 bool showMA   = input.bool(true, "MA", group = "Show", inline = "s")
 bool showDots = input.bool(true, "OS dots", group = "Show", inline = "s")
 bool showCipherDots = input.bool(true, "Cipher dots", group = "Show", inline = "s2")
@@ -20,6 +19,7 @@ bool showDivLabels = input.bool(false, "Labels", group = "Show", inline = "s3")
 bool showRaw  = input.bool(false, "Ghost legs", group = "Show")
 bool confirmOnClose = input.bool(true, "Confirm on close", group = "Show")
 
+bool showComp = input.bool(true, "Composite", group = "Blend", tooltip = "On: one blended line. Off: each checked oscillator plots as itself (own MA + divergences).")
 string blendPreset = input.string("Research (CCI+WT)", "Preset", options = ["Research (CCI+WT)", "HYPE (RSI+CCI+Stoch+MFI)", "Full 5", "Custom"], group = "Blend")
 bool inRsi  = input.bool(false, "RSI", group = "Blend", inline = "a")
 bool inCci  = input.bool(true,  "CCI", group = "Blend", inline = "a")
@@ -69,6 +69,7 @@ bool requireHtf = input.bool(false, "Prime requires HTF agreement", group = "HTF
 float rsi = ta.rsi(srcRsi, rsiLen)
 float cci = ta.cci(srcCci, cciLen)
 float kRaw = ta.sma(ta.stoch(close, high, low, stochLen), smoothK)
+float dRaw = ta.sma(kRaw, smoothD)
 float esa = ta.ema(hlc3, n1)
 float de = ta.ema(math.abs(hlc3 - esa), n1)
 float ci = de == 0 ? 0.0 : (hlc3 - esa) / (0.015 * de)
@@ -82,8 +83,6 @@ float vwapVal = ta.vwap(hlc3)
 float atr = ta.atr(14)
 float vwapDist = atr == 0 ? 0.0 : (close - vwapVal) / atr * 50.0
 
-// One selected leg → native scale (RSI 0–100, CCI unbounded, WT as LazyBear).
-// Two+ legs → average of zero-centered cousins so no one is stretched to ±200.
 float rsiB = (rsi - 50.0) * 2.0
 float stoB = (kRaw - 50.0) * 2.0
 float mfiB = (mfi - 50.0) * 2.0
@@ -100,12 +99,6 @@ bool zeroOnly = nLegs > 0 and not rsiOn and not stoOn and not mfiOn
 float accPct = (rsiOn ? rsi : 0.0) + (stoOn ? kRaw : 0.0) + (mfiOn ? mfi : 0.0)
 float accB = (rsiOn ? rsiB : 0.0) + (cciOn ? cci : 0.0) + (stoOn ? stoB : 0.0) + (wtOn ? wt1 : 0.0) + (mfiOn ? mfiB : 0.0) + (vwapOn ? vwapDist : 0.0)
 float native = rsiOn ? rsi : cciOn ? cci : stoOn ? kRaw : wtOn ? wt1 : mfiOn ? mfi : vwapDist
-float rsiN = rsi
-float cciN = cci
-float stoN = kRaw
-float wtN = wt1
-float mfiN = mfi
-float vwapN = vwapDist
 float composite = nLegs == 0 ? 0.0 : nLegs == 1 ? native : pctOnly ? accPct / nLegs : accB / nLegs
 float compositeMA = maType == "SMA" ? ta.sma(composite, maLen) : ta.ema(composite, maLen)
 
@@ -124,30 +117,49 @@ bool htfBear = htfClose < htfEma
 bool gated = not confirmOnClose or barstate.isconfirmed
 bool crossUp = ta.crossover(composite, compositeMA)
 bool inOs = composite <= osY
-
 bool sigLong  = gated and crossUp and inOs
-bool primeLong  = sigLong  and nOs >= needAgree and (not requireHtf or not htfBear)
-// Cipher B green dot: WT1 crosses above WT2 while WT2 is oversold (VMC osLevel -53).
+bool primeLong  = sigLong and nOs >= needAgree and (not requireHtf or not htfBear)
 bool cipherGreen = gated and ta.crossover(wt1, wt2) and wt2 <= -53.0
 
 _inRange(bool cond) =>
     int bars = ta.barssince(cond)
     not na(bars) and bars >= rangeLower and bars <= rangeUpper
 
-bool plFound = not na(ta.pivotlow(composite, lbL, lbR))
-bool phFound = not na(ta.pivothigh(composite, lbL, lbR))
-bool compHL = composite[lbR] > ta.valuewhen(plFound, composite[lbR], 1) and _inRange(plFound[1])
-bool compLL = composite[lbR] < ta.valuewhen(plFound, composite[lbR], 1) and _inRange(plFound[1])
-bool compLH = composite[lbR] < ta.valuewhen(phFound, composite[lbR], 1) and _inRange(phFound[1])
-bool compHH = composite[lbR] > ta.valuewhen(phFound, composite[lbR], 1) and _inRange(phFound[1])
-bool priceLL = low[lbR]  < ta.valuewhen(plFound, low[lbR], 1)
-bool priceHL = low[lbR]  > ta.valuewhen(plFound, low[lbR], 1)
-bool priceHH = high[lbR] > ta.valuewhen(phFound, high[lbR], 1)
-bool priceLH = high[lbR] < ta.valuewhen(phFound, high[lbR], 1)
-bool bullCond = plotBull and showDiv and priceLL and compHL and plFound
-bool hidBull  = plotHidBull and showDiv and priceHL and compLL and plFound
-bool bearCond = plotBear and showDiv and priceHH and compLH and phFound
-bool hidBear  = plotHidBear and showDiv and priceLH and compHH and phFound
+f_legDiv(float src) =>
+    bool plFound = not na(ta.pivotlow(src, lbL, lbR))
+    bool phFound = not na(ta.pivothigh(src, lbL, lbR))
+    bool srcHL = src[lbR] > ta.valuewhen(plFound, src[lbR], 1) and _inRange(plFound[1])
+    bool srcLL = src[lbR] < ta.valuewhen(plFound, src[lbR], 1) and _inRange(plFound[1])
+    bool srcLH = src[lbR] < ta.valuewhen(phFound, src[lbR], 1) and _inRange(phFound[1])
+    bool srcHH = src[lbR] > ta.valuewhen(phFound, src[lbR], 1) and _inRange(phFound[1])
+    bool pxLL = low[lbR]  < ta.valuewhen(plFound, low[lbR], 1)
+    bool pxHL = low[lbR]  > ta.valuewhen(plFound, low[lbR], 1)
+    bool pxHH = high[lbR] > ta.valuewhen(phFound, high[lbR], 1)
+    bool pxLH = high[lbR] < ta.valuewhen(phFound, high[lbR], 1)
+    bool bull = plotBull and showDiv and pxLL and srcHL and plFound
+    bool hBull = plotHidBull and showDiv and pxHL and srcLL and plFound
+    bool bear = plotBear and showDiv and pxHH and srcLH and phFound
+    bool hBear = plotHidBear and showDiv and pxLH and srcHH and phFound
+    [plFound, phFound, bull, hBull, bear, hBear]
+
+f_ma(float src) =>
+    maType == "SMA" ? ta.sma(src, maLen) : ta.ema(src, maLen)
+
+[plFound, phFound, bullCond, hidBull, bearCond, hidBear] = f_legDiv(composite)
+[rsiPL, rsiPH, rsiBull, rsiHB, rsiBear, rsiHBe] = f_legDiv(rsi)
+[cciPL, cciPH, cciBull, cciHB, cciBear, cciHBe] = f_legDiv(cci)
+[stoPL, stoPH, stoBull, stoHB, stoBear, stoHBe] = f_legDiv(kRaw)
+[wtPL, wtPH, wtBull, wtHB, wtBear, wtHBe] = f_legDiv(wt1)
+[mfiPL, mfiPH, mfiBull, mfiHB, mfiBear, mfiHBe] = f_legDiv(mfi)
+
+bool legsMode = not showComp
+color noneCol = color.new(color.white, 100)
+color rsiCol = #00d8e0
+color cciCol = #ff4fd0
+color stoCol = #4c7ad9
+color wtCol  = cCopper
+color mfiCol = #8b6bb5
+color vwCol  = #e0a15a
 
 pZero = plot(zeroY, "Zero", color = color.new(#787B86, 40), linewidth = 1)
 pOb = plot(obY, "OB", color = color.new(cRose, 40), linewidth = 1)
@@ -158,39 +170,69 @@ plot(cciOn and not pctScale ? -200.0 : na, "CCI OS 200", color = color.new(cTeal
 
 plot(showMfArea ? mfAreaN : na, "Money flow area", color = mfAreaN >= 0 ? color.new(#3fff00, 55) : color.new(#ff3535, 55), style = plot.style_histogram, linewidth = 2)
 
-plot(showRaw and useRsi  ? rsiN  : na, "RSI", color = color.new(#00d8e0, 78))
-plot(showRaw and useCci  ? cciN  : na, "CCI", color = color.new(#ff4fd0, 78))
-plot(showRaw and useSto  ? stoN  : na, "Stoch", color = color.new(#4c7ad9, 78))
-plot(showRaw and useWt   ? wtN   : na, "WT", color = color.new(cCopper, 78))
-plot(showRaw and useMfi  ? mfiN  : na, "MFI", color = color.new(#8b6bb5, 78))
-plot(showRaw and useVwap ? vwapN : na, "VWAP", color = color.new(#e0a15a, 78))
+plot(showComp ? composite : na, "Composite", color = composite > compositeMA ? cTeal : cRose, linewidth = 3)
+plot(showComp and showMA ? compositeMA : na, "Composite MA", color = cCopper, linewidth = 2)
 
-color compCol = composite > compositeMA ? cTeal : cRose
-plot(showComp ? composite : na, "Composite", color = compCol, linewidth = 3, display = display.all)
-plot(showMA ? compositeMA : na, "Composite MA", color = cCopper, linewidth = 2, display = display.all)
+plot(legsMode and useRsi ? rsi : showRaw and useRsi ? rsi : na, "RSI", color = legsMode ? rsiCol : color.new(rsiCol, 78), linewidth = legsMode ? 2 : 1)
+plot(legsMode and useRsi and showMA ? f_ma(rsi) : na, "RSI MA", color = color.new(rsiCol, 40))
+plot(legsMode and useCci ? cci : showRaw and useCci ? cci : na, "CCI", color = legsMode ? cciCol : color.new(cciCol, 78), linewidth = legsMode ? 2 : 1)
+plot(legsMode and useCci and showMA ? f_ma(cci) : na, "CCI MA", color = color.new(cciCol, 40))
+plot(legsMode and useSto ? kRaw : showRaw and useSto ? kRaw : na, "Stoch K", color = legsMode ? stoCol : color.new(stoCol, 78), linewidth = legsMode ? 2 : 1)
+plot(legsMode and useSto ? dRaw : na, "Stoch D", color = color.new(stoCol, 35))
+plot(legsMode and useWt ? wt1 : showRaw and useWt ? wt1 : na, "WT1", color = legsMode ? wtCol : color.new(wtCol, 78), linewidth = legsMode ? 2 : 1)
+plot(legsMode and useWt ? wt2 : na, "WT2", color = color.new(wtCol, 35))
+plot(legsMode and useMfi ? mfi : showRaw and useMfi ? mfi : na, "MFI", color = legsMode ? mfiCol : color.new(mfiCol, 78), linewidth = legsMode ? 2 : 1)
+plot(legsMode and useMfi and showMA ? f_ma(mfi) : na, "MFI MA", color = color.new(mfiCol, 40))
+plot(legsMode and useVwap ? vwapDist : showRaw and useVwap ? vwapDist : na, "VWAP dist", color = legsMode ? vwCol : color.new(vwCol, 78), linewidth = legsMode ? 2 : 1)
 
-color noneCol = color.new(color.white, 100)
-plot(showDiv and plFound ? composite[lbR] : na, offset = -lbR, title = "Bull pivot", color = bullCond ? cTeal : hidBull ? color.new(cTeal, 65) : noneCol, linewidth = 2)
-plot(showDiv and phFound ? composite[lbR] : na, offset = -lbR, title = "Bear pivot", color = bearCond ? cRose : hidBear ? color.new(cRose, 65) : noneCol, linewidth = 2)
+plot(showComp and showDiv and plFound ? composite[lbR] : na, offset = -lbR, title = "Bull pivot", color = bullCond ? cTeal : hidBull ? color.new(cTeal, 65) : noneCol, linewidth = 2)
+plot(showComp and showDiv and phFound ? composite[lbR] : na, offset = -lbR, title = "Bear pivot", color = bearCond ? cRose : hidBear ? color.new(cRose, 65) : noneCol, linewidth = 2)
+plot(legsMode and useRsi and showDiv and rsiPL ? rsi[lbR] : na, offset = -lbR, title = "RSI bull div", color = rsiBull ? cTeal : rsiHB ? color.new(cTeal, 65) : noneCol)
+plot(legsMode and useRsi and showDiv and rsiPH ? rsi[lbR] : na, offset = -lbR, title = "RSI bear div", color = rsiBear ? cRose : rsiHBe ? color.new(cRose, 65) : noneCol)
+plot(legsMode and useCci and showDiv and cciPL ? cci[lbR] : na, offset = -lbR, title = "CCI bull div", color = cciBull ? cTeal : cciHB ? color.new(cTeal, 65) : noneCol)
+plot(legsMode and useCci and showDiv and cciPH ? cci[lbR] : na, offset = -lbR, title = "CCI bear div", color = cciBear ? cRose : cciHBe ? color.new(cRose, 65) : noneCol)
+plot(legsMode and useSto and showDiv and stoPL ? kRaw[lbR] : na, offset = -lbR, title = "Stoch bull div", color = stoBull ? cTeal : stoHB ? color.new(cTeal, 65) : noneCol)
+plot(legsMode and useSto and showDiv and stoPH ? kRaw[lbR] : na, offset = -lbR, title = "Stoch bear div", color = stoBear ? cRose : stoHBe ? color.new(cRose, 65) : noneCol)
+plot(legsMode and useWt and showDiv and wtPL ? wt1[lbR] : na, offset = -lbR, title = "WT bull div", color = wtBull ? cTeal : wtHB ? color.new(cTeal, 65) : noneCol)
+plot(legsMode and useWt and showDiv and wtPH ? wt1[lbR] : na, offset = -lbR, title = "WT bear div", color = wtBear ? cRose : wtHBe ? color.new(cRose, 65) : noneCol)
+plot(legsMode and useMfi and showDiv and mfiPL ? mfi[lbR] : na, offset = -lbR, title = "MFI bull div", color = mfiBull ? cTeal : mfiHB ? color.new(cTeal, 65) : noneCol)
+plot(legsMode and useMfi and showDiv and mfiPH ? mfi[lbR] : na, offset = -lbR, title = "MFI bear div", color = mfiBear ? cRose : mfiHBe ? color.new(cRose, 65) : noneCol)
 
-plotshape(showDots and primeLong ? composite : na, title = "Prime long watch", style = shape.diamond, location = location.absolute, color = cCopper, size = size.small)
-plotshape(showDots and sigLong and not primeLong ? composite : na, title = "Long watch", style = shape.circle, location = location.absolute, color = cTeal, size = size.tiny)
+plotshape(showComp and showDots and primeLong ? composite : na, title = "Prime long watch", style = shape.diamond, location = location.absolute, color = cCopper, size = size.small)
+plotshape(showComp and showDots and sigLong and not primeLong ? composite : na, title = "Long watch", style = shape.circle, location = location.absolute, color = cTeal, size = size.tiny)
 plotshape(showCipherDots and cipherGreen, title = "Cipher green dot", style = shape.circle, location = location.bottom, color = #3fff00, size = size.small)
 
-if showDivLabels and bullCond
-    label.new(bar_index[lbR], composite[lbR], "BULL", style = label.style_label_up, color = cTeal, textcolor = color.black, size = size.small)
-if showDivLabels and hidBull
-    label.new(bar_index[lbR], composite[lbR], "H Bull", style = label.style_label_up, color = color.new(cTeal, 40), textcolor = color.black, size = size.small)
-if showDivLabels and bearCond
-    label.new(bar_index[lbR], composite[lbR], "BEAR", style = label.style_label_down, color = cRose, textcolor = color.white, size = size.small)
-if showDivLabels and hidBear
-    label.new(bar_index[lbR], composite[lbR], "H Bear", style = label.style_label_down, color = color.new(cRose, 40), textcolor = color.white, size = size.small)
+f_divLabel(bool bull, bool hBull, bool bear, bool hBear, float y) =>
+    if showDivLabels and bull
+        label.new(bar_index[lbR], y, "BULL", style = label.style_label_up, color = cTeal, textcolor = color.black, size = size.tiny)
+    if showDivLabels and hBull
+        label.new(bar_index[lbR], y, "H Bull", style = label.style_label_up, color = color.new(cTeal, 40), textcolor = color.black, size = size.tiny)
+    if showDivLabels and bear
+        label.new(bar_index[lbR], y, "BEAR", style = label.style_label_down, color = cRose, textcolor = color.white, size = size.tiny)
+    if showDivLabels and hBear
+        label.new(bar_index[lbR], y, "H Bear", style = label.style_label_down, color = color.new(cRose, 40), textcolor = color.white, size = size.tiny)
+
+if showComp
+    f_divLabel(bullCond, hidBull, bearCond, hidBear, composite[lbR])
+else
+    if useRsi
+        f_divLabel(rsiBull, rsiHB, rsiBear, rsiHBe, rsi[lbR])
+    if useCci
+        f_divLabel(cciBull, cciHB, cciBear, cciHBe, cci[lbR])
+    if useSto
+        f_divLabel(stoBull, stoHB, stoBear, stoHBe, kRaw[lbR])
+    if useWt
+        f_divLabel(wtBull, wtHB, wtBear, wtHBe, wt1[lbR])
+    if useMfi
+        f_divLabel(mfiBull, mfiHB, mfiBear, mfiHBe, mfi[lbR])
 
 alertcondition(primeLong, "Wave Prime Long", "Blend cross up in OS + most legs oversold")
 alertcondition(sigLong, "Wave Long watch", "Composite crossed above MA in oversold zone")
 alertcondition(cipherGreen, "Wave Cipher green dot", "WT1 crossed WT2 in oversold (VMC green dot)")
 alertcondition(bullCond, "Wave regular bull div", "Regular bullish divergence on composite")
 alertcondition(bearCond, "Wave regular bear div - Tape invalidation", "Regular bearish divergence. Skip Tape longs until it fails.")
+alertcondition(cciBear, "Wave CCI bear div", "Regular bearish divergence on CCI")
+alertcondition(rsiBear, "Wave RSI bear div", "Regular bearish divergence on RSI")
 
 if primeLong
     alert("KAIROS WAVE prime LONG watch | blend " + str.tostring(composite, "#.0") + " | legs OS " + str.tostring(nOs) + "/" + str.tostring(nLegs), alert.freq_once_per_bar_close)
