@@ -338,24 +338,34 @@ dn3 = plot(showST and dir3 > 0 ? st3 : na, "ST3 dn", color = cRose,  style = plo
 fill(bodyMid, up3, showST ? color.new(cTeal, 88) : na, title = "ST up")
 fill(bodyMid, dn3, showST ? color.new(cRose, 88) : na, title = "ST dn")
 
-barcolor(cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
+barcolor(bearDivActive and shadeInv ? color.new(cInvWash, 55) : cci > cciSoft ? color.new(cTeal, 55) : cci < -cciSoft ? color.new(cRose, 55) : na)
 
 plotshape(showImpulseLong and impulseLong,  title = "Impulse Long",  style = shape.triangleup,   location = location.belowbar, color = cTeal,   size = size.small, text = "IN", textcolor = color.white)
-plotshape(showExhaustion and fadeLong,     title = "Exhaustion L",  style = shape.diamond,      location = location.abovebar, color = cCopper, size = size.tiny,  text = "EX")
-plotshape(showExhaustion and fadeShort,    title = "Exhaustion S",  style = shape.diamond,      location = location.belowbar, color = cCopper, size = size.tiny,  text = "EX")
-plotshape(showStEnv and stEnvUp,      title = "ST env up",     style = shape.xcross,       location = location.belowbar, color = cSlate,  size = size.tiny)
-plotshape(showStEnv and stEnvDn,      title = "ST env down",   style = shape.xcross,       location = location.abovebar, color = cRose,   size = size.tiny)
 plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = cSuper, size = size.tiny, text = "L", textcolor = color.white)
 plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = cSTLong, size = size.small, text = "L")
 plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = cCopper, size = size.normal, text = "K", textcolor = color.white)
-plotshape(showCipherA and showCaLong and caBlue and not invKill, title = "CA blue triangle", style = shape.triangleup, location = location.belowbar, color = cCaBlue, size = size.tiny)
-plotshape(showCipherA and showCaLong and caLongEma and not invKill, title = "CA long EMA", style = shape.circle, location = location.belowbar, color = cCaGreen, size = size.tiny)
-plotshape(showCipherA and showCaWarn and caRedCross, title = "CA red X", style = shape.xcross, location = location.abovebar, color = cFastDn, size = size.tiny)
-plotshape(showCipherA and showCaWarn and caRedDiamond and not caBlood and not caYellowX, title = "CA red diamond", style = shape.diamond, location = location.abovebar, color = cFastDn, size = size.tiny)
-plotshape(showCipherA and showCaWarn and caYellowX, title = "CA yellow X", style = shape.xcross, location = location.abovebar, color = cCaYel, size = size.small)
-plotshape(showCipherA and showCaWarn and caBlood, title = "CA blood diamond", style = shape.diamond, location = location.abovebar, color = cCaBlood, size = size.small)
 
-bgcolor(shadeInv and bearDivActive ? color.new(cInvWash, 90) : na, title = "Wave INV live")
+// Labels do not count toward the 64-plot cap. Keep plotshapes only for the four longs.
+if showExhaustion and fadeLong
+    label.new(bar_index, high, "EX", style = label.style_label_down, color = cCopper, textcolor = color.white, size = size.tiny)
+if showExhaustion and fadeShort
+    label.new(bar_index, low, "EX", style = label.style_label_up, color = cCopper, textcolor = color.white, size = size.tiny)
+if showStEnv and stEnvUp
+    label.new(bar_index, low, "×", style = label.style_label_up, color = cSlate, textcolor = color.white, size = size.tiny)
+if showStEnv and stEnvDn
+    label.new(bar_index, high, "×", style = label.style_label_down, color = cRose, textcolor = color.white, size = size.tiny)
+if showCipherA and showCaLong and caBlue and not invKill
+    label.new(bar_index, low, "▲", style = label.style_none, color = cCaBlue, textcolor = cCaBlue, size = size.small, yloc = yloc.belowbar)
+if showCipherA and showCaLong and caLongEma and not invKill
+    label.new(bar_index, low, "●", style = label.style_none, color = cCaGreen, textcolor = cCaGreen, size = size.small, yloc = yloc.belowbar)
+if showCipherA and showCaWarn and caYellowX
+    label.new(bar_index, high, "✕", style = label.style_none, color = cCaYel, textcolor = cCaYel, size = size.normal, yloc = yloc.abovebar)
+else if showCipherA and showCaWarn and caBlood
+    label.new(bar_index, high, "◆", style = label.style_none, color = cCaBlood, textcolor = cCaBlood, size = size.normal, yloc = yloc.abovebar)
+else if showCipherA and showCaWarn and caRedDiamond
+    label.new(bar_index, high, "◆", style = label.style_none, color = cFastDn, textcolor = cFastDn, size = size.small, yloc = yloc.abovebar)
+else if showCipherA and showCaWarn and caRedCross
+    label.new(bar_index, high, "✕", style = label.style_none, color = cFastDn, textcolor = cFastDn, size = size.small, yloc = yloc.abovebar)
 
 var table dash = na
 if barstate.islast
