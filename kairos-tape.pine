@@ -3,19 +3,6 @@
 //@version=6
 indicator("Kairos Tape", shorttitle = "KRS Tape", overlay = true, max_labels_count = 500, max_lines_count = 50)
 
-color cTeal   = #3aa88a
-color cRose   = #c45c4a
-color cCopper = #c9a227
-color cSlate  = #8aa0b4
-color cInk    = #d8d4c8
-// Directional rainbow: cool spectrum when stacked up, warm when stacked down.
-color cFastUp = #00f5d4
-color cFastDn = #ff2d6a
-color cMidUp  = #57cc99
-color cMidDn  = #ff7a3a
-color cSlowUp = #4ea8de
-color cSlowDn = #9b5de5
-
 string profile = input.string("Intraday", "Profile", options = ["Scalp", "Intraday", "Swing", "Custom"], group = "0. Profile")
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "0. Profile")
 bool showDash = input.bool(false, "Show dashboard table (top right)", group = "0. Profile")
@@ -32,6 +19,27 @@ bool showMidCloud  = input.bool(true, "Mid cloud",  group = "1. Moving Averages"
 bool showSlowCloud = input.bool(true, "Slow cloud", group = "1. Moving Averages", inline = "cl")
 bool showLines  = input.bool(false, "MA lines", group = "1. Moving Averages")
 bool showSlow   = input.bool(true, "Show slow MA line", group = "1. Moving Averages")
+
+// Color inputs: used DIRECTLY on plot/plotshape so TradingView Style tab shows pickers.
+// Cloud fills still flip up/down from these. Dynamic ternary colors never get a Style swatch.
+color cTeal    = input.color(#3aa88a, "IN / long",           group = "13. Colors", inline = "sig")
+color cRose    = input.color(#c45c4a, "Warn / ST down",      group = "13. Colors", inline = "sig")
+color cCopper  = input.color(#c9a227, "K / VWAP / EX",       group = "13. Colors", inline = "sig")
+color cSlate   = input.color(#8aa0b4, "ST up",               group = "13. Colors", inline = "sig")
+color cInk     = input.color(#d8d4c8, "Dashboard text",      group = "13. Colors")
+color cSTLong  = input.color(#e597ff, "STLong",              group = "13. Colors", inline = "L")
+color cSuper   = input.color(#3aff54, "SUPERLONG",           group = "13. Colors", inline = "L")
+color cFastUp  = input.color(#00f5d4, "Fast cloud up",       group = "13. Colors", inline = "f")
+color cFastDn  = input.color(#ff2d6a, "Fast cloud down",     group = "13. Colors", inline = "f")
+color cMidUp   = input.color(#57cc99, "Mid cloud up",        group = "13. Colors", inline = "m")
+color cMidDn   = input.color(#ff7a3a, "Mid cloud down",      group = "13. Colors", inline = "m")
+color cSlowUp  = input.color(#4ea8de, "Slow cloud up",       group = "13. Colors", inline = "s")
+color cSlowDn  = input.color(#9b5de5, "Slow cloud down",     group = "13. Colors", inline = "s")
+color cCaBlue  = input.color(#0064ff, "CA blue triangle",    group = "13. Colors", inline = "ca")
+color cCaGreen = input.color(#3fff00, "CA green circle",     group = "13. Colors", inline = "ca")
+color cCaYel   = input.color(#ffe500, "CA yellow X",         group = "13. Colors", inline = "ca2")
+color cCaBlood = input.color(#ff003c, "CA blood diamond",    group = "13. Colors", inline = "ca2")
+color cInvWash = input.color(#c45c4a, "INV bar wash",        group = "13. Colors")
 
 int len1 = in1
 int len2 = in2
@@ -312,21 +320,21 @@ bool kairosLong = kairosRaw and not invKill
 bool anyLongRaw = impulseLongRaw or SUPERLONG_RAW or STLong_RAW or kairosRaw
 bool skippedLong = invKill and anyLongRaw
 
-plot(showVwap ? vwapVal : na, "VWAP", color = color.new(cCopper, 30), linewidth = 1)
+plot(showVwap ? vwapVal : na, "VWAP", color = cCopper, linewidth = 1)
 
-pMA1 = plot(MA1, "MA1", color = showLines ? color.new(vFast > 0 ? cFastUp : cFastDn, 10) : na, linewidth = 1)
-pMA2 = plot(MA2, "MA2", color = showLines ? color.new(vFast > 0 ? cFastUp : cFastDn, 25) : na, linewidth = 1)
-pMA3 = plot(MA3, "MA3", color = showLines ? color.new(vMid  > 0 ? cMidUp  : cMidDn, 5)  : na, linewidth = 1)
-pMA4 = plot(MA4, "MA4", color = showLines ? color.new(vMid  > 0 ? cMidUp  : cMidDn, 20) : na, linewidth = 1)
-pMA5 = plot(MA5, "MA5", color = showLines ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 30) : na, linewidth = 1)
-pMA6 = plot(MA6, "MA6", color = showLines or showSlow ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 0) : na, linewidth = 2)
+pMA1 = plot(MA1, "MA1", color = cFastUp, linewidth = 1, display = showLines ? display.all : display.none)
+pMA2 = plot(MA2, "MA2", color = cFastUp, linewidth = 1, display = showLines ? display.all : display.none)
+pMA3 = plot(MA3, "MA3", color = cMidUp,  linewidth = 1, display = showLines ? display.all : display.none)
+pMA4 = plot(MA4, "MA4", color = cMidUp,  linewidth = 1, display = showLines ? display.all : display.none)
+pMA5 = plot(MA5, "MA5", color = cSlowUp, linewidth = 1, display = showLines ? display.all : display.none)
+pMA6 = plot(MA6, "MA6", color = cSlowUp, linewidth = 2, display = showLines or showSlow ? display.all : display.none)
 fill(pMA1, pMA2, showFastCloud ? color.new(vFast > 0 ? cFastUp : cFastDn, 68) : na, title = "Fast cloud")
 fill(pMA3, pMA4, showMidCloud  ? color.new(vMid  > 0 ? cMidUp  : cMidDn,  64) : na, title = "Mid cloud")
 fill(pMA5, pMA6, showSlowCloud ? color.new(vSlow > 0 ? cSlowUp : cSlowDn, 72) : na, title = "Slow cloud")
 
 bodyMid = plot((open + close) / 2.0, display = display.none, editable = false)
-up3 = plot(dir3 < 0 ? st3 : na, "ST3 up", color = showST ? color.new(cSlate, 40) : na, style = plot.style_linebr, linewidth = 2)
-dn3 = plot(dir3 > 0 ? st3 : na, "ST3 dn", color = showST ? color.new(cRose, 40) : na, style = plot.style_linebr, linewidth = 2)
+up3 = plot(showST and dir3 < 0 ? st3 : na, "ST3 up", color = cSlate, style = plot.style_linebr, linewidth = 2)
+dn3 = plot(showST and dir3 > 0 ? st3 : na, "ST3 dn", color = cRose,  style = plot.style_linebr, linewidth = 2)
 fill(bodyMid, up3, showST ? color.new(cTeal, 88) : na, title = "ST up")
 fill(bodyMid, dn3, showST ? color.new(cRose, 88) : na, title = "ST dn")
 
@@ -337,17 +345,17 @@ plotshape(showExhaustion and fadeLong,     title = "Exhaustion L",  style = shap
 plotshape(showExhaustion and fadeShort,    title = "Exhaustion S",  style = shape.diamond,      location = location.belowbar, color = cCopper, size = size.tiny,  text = "EX")
 plotshape(showStEnv and stEnvUp,      title = "ST env up",     style = shape.xcross,       location = location.belowbar, color = cSlate,  size = size.tiny)
 plotshape(showStEnv and stEnvDn,      title = "ST env down",   style = shape.xcross,       location = location.abovebar, color = cRose,   size = size.tiny)
-plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = #3aff54, size = size.tiny, text = "L", textcolor = color.white)
-plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = #e597ff, size = size.small, text = "L")
+plotshape(showSuperLong and SUPERLONG, title = "SUPERLONG", style = shape.triangleup, location = location.belowbar, color = cSuper, size = size.tiny, text = "L", textcolor = color.white)
+plotshape(showSTLong and STLong, title = "STLong", style = shape.triangleup, location = location.belowbar, color = cSTLong, size = size.small, text = "L")
 plotshape(showKairos and kairosLong, title = "Kairos long", style = shape.triangleup, location = location.belowbar, color = cCopper, size = size.normal, text = "K", textcolor = color.white)
-plotshape(showCipherA and showCaLong and caBlue and not invKill, title = "CA blue triangle", style = shape.triangleup, location = location.belowbar, color = #0064ff, size = size.tiny)
-plotshape(showCipherA and showCaLong and caLongEma and not invKill, title = "CA long EMA", style = shape.circle, location = location.belowbar, color = #3fff00, size = size.tiny)
-plotshape(showCipherA and showCaWarn and caRedCross, title = "CA red X", style = shape.xcross, location = location.abovebar, color = #ff2d6a, size = size.tiny)
-plotshape(showCipherA and showCaWarn and caRedDiamond and not caBlood and not caYellowX, title = "CA red diamond", style = shape.diamond, location = location.abovebar, color = #ff2d6a, size = size.tiny)
-plotshape(showCipherA and showCaWarn and caYellowX, title = "CA yellow X", style = shape.xcross, location = location.abovebar, color = #ffe500, size = size.small)
-plotshape(showCipherA and showCaWarn and caBlood, title = "CA blood diamond", style = shape.diamond, location = location.abovebar, color = #ff003c, size = size.small)
+plotshape(showCipherA and showCaLong and caBlue and not invKill, title = "CA blue triangle", style = shape.triangleup, location = location.belowbar, color = cCaBlue, size = size.tiny)
+plotshape(showCipherA and showCaLong and caLongEma and not invKill, title = "CA long EMA", style = shape.circle, location = location.belowbar, color = cCaGreen, size = size.tiny)
+plotshape(showCipherA and showCaWarn and caRedCross, title = "CA red X", style = shape.xcross, location = location.abovebar, color = cFastDn, size = size.tiny)
+plotshape(showCipherA and showCaWarn and caRedDiamond and not caBlood and not caYellowX, title = "CA red diamond", style = shape.diamond, location = location.abovebar, color = cFastDn, size = size.tiny)
+plotshape(showCipherA and showCaWarn and caYellowX, title = "CA yellow X", style = shape.xcross, location = location.abovebar, color = cCaYel, size = size.small)
+plotshape(showCipherA and showCaWarn and caBlood, title = "CA blood diamond", style = shape.diamond, location = location.abovebar, color = cCaBlood, size = size.small)
 
-bgcolor(shadeInv and bearDivActive ? color.new(cRose, 90) : na, title = "Wave INV live")
+bgcolor(shadeInv and bearDivActive ? color.new(cInvWash, 90) : na, title = "Wave INV live")
 
 var table dash = na
 if barstate.islast
