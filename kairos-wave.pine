@@ -173,7 +173,7 @@ plot(showDiv and phFound ? composite[lbR] : na, offset = -lbR, title = "Bear piv
 
 plotshape(showDots and primeLong ? composite : na, title = "Prime long watch", style = shape.diamond, location = location.absolute, color = cCopper, size = size.small)
 plotshape(showDots and sigLong and not primeLong ? composite : na, title = "Long watch", style = shape.circle, location = location.absolute, color = cTeal, size = size.tiny)
-plotshape(showCipherDots and cipherGreen ? wtN : na, title = "Cipher green dot", style = shape.circle, location = location.absolute, color = #3fff00, size = size.small)
+plotshape(showCipherDots and cipherGreen, title = "Cipher green dot", style = shape.circle, location = location.bottom, color = #3fff00, size = size.small)
 
 if showDivLabels and bullCond
     label.new(bar_index[lbR], composite[lbR], "BULL", style = label.style_label_up, color = cTeal, textcolor = color.black, size = size.small)
