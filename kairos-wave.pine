@@ -3,7 +3,7 @@
 // Green dots = VMC Cipher B buy (WT1 x WT2 while WT2 <= -53). No short dots.
 // BEAR label = Tape long invalidation. STLong lives on Tape and is not changed here.
 //@version=6
-indicator("Kairos Wave", shorttitle = "KRS Wave", overlay = false, format = format.price, max_labels_count = 100, max_lines_count = 50)
+indicator("Kairos Wave", shorttitle = "Kairos Wave", overlay = false, format = format.price, max_labels_count = 100, max_lines_count = 50)
 
 color cTeal   = #3aa88a
 color cRose   = #c45c4a
@@ -16,7 +16,7 @@ bool showDots = input.bool(true, "Oversold watch dots", group = "Show")
 bool showCipherDots = input.bool(true, "Cipher green dots (WT OS cross)", group = "Show")
 bool showMfArea = input.bool(true, "Money-flow area (VMC-style)", group = "Show")
 bool showDiv  = input.bool(true, "Divergences", group = "Show")
-bool showDivLabels = input.bool(true, "BULL / BEAR / hidden labels", group = "Show")
+bool showDivLabels = input.bool(false, "BULL / BEAR / hidden labels", group = "Show")
 bool showRaw  = input.bool(false, "Ghost legs (debug)", group = "Show")
 bool confirmOnClose = input.bool(true, "Confirm on bar close", group = "Show")
 
